@@ -240,7 +240,8 @@ function Login({ onLogin, T }) {
       <div style={{ position: "fixed", inset: 0, backgroundImage: "linear-gradient(" + T.gl + " 1px,transparent 1px),linear-gradient(90deg," + T.gl + " 1px,transparent 1px)", backgroundSize: "48px 48px", opacity: 0.5, pointerEvents: "none" }} />
       <div style={{ background: T.card, border: "1px solid " + T.bor, borderRadius: 20, padding: 32, width: "100%", maxWidth: 380, zIndex: 10, boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
         <h1 style={{ fontFamily: T.df, fontSize: 24, fontWeight: 800, textAlign: "center", marginBottom: 6 }}>MY JOB CHRONICLE</h1>
-        <p style={{ fontFamily: T.mf, fontSize: 11, color: T.t3, textAlign: "center", marginBottom: 24 }}>// Please login to continue</p>
+        <p style={{ fontFamily: T.mf, fontSize: 11, color: T.t3, textAlign: "center", marginBottom: 8 }}>// Please login to continue</p>
+        <p style={{ fontSize: 10, color: T.t3, textAlign: "center", marginBottom: 24 }}>※ 機能をお試しになりたい方は、ユーザー名に「demo」と入力してログインしてください</p>
         
         <div style={{ display: "flex", marginBottom: 20, borderBottom: "1px solid " + T.bor }}>
           <button type="button" onClick={() => { setIsLoginMode(true); setError(""); }} style={{ flex: 1, background: "none", border: "none", padding: "10px 0", color: isLoginMode ? T.acc : T.t3, fontWeight: 700, borderBottom: isLoginMode ? "2px solid " + T.acc : "none", fontFamily: T.bf, cursor: "pointer", transition: "all 0.2s" }}>ログイン</button>
@@ -265,11 +266,11 @@ function JobChronicleApp({ currentUser, handleLogout }){
 
   const[cos,setCos]=useState(() => {
     const saved = localStorage.getItem("job_cos_" + currentUser);
-    return saved ? JSON.parse(saved) : COMPANIES;
+    return saved ? JSON.parse(saved) : (currentUser === "demo" ? COMPANIES : []);
   });
   const[evs,setEvs]=useState(() => {
     const saved = localStorage.getItem("job_evs_" + currentUser);
-    return saved ? JSON.parse(saved) : EVENTS;
+    return saved ? JSON.parse(saved) : (currentUser === "demo" ? EVENTS : []);
   });
 
   useEffect(() => {
@@ -279,6 +280,39 @@ function JobChronicleApp({ currentUser, handleLogout }){
   useEffect(() => {
     localStorage.setItem("job_evs_" + currentUser, JSON.stringify(evs));
   }, [evs, currentUser]);
+
+  function exportData() {
+    const data = { cos: cos, evs: evs };
+    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "my-job-chronicle-" + currentUser + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (data.cos && data.evs) {
+          setCos(data.cos);
+          setEvs(data.evs);
+          alert("データをインポートしました！");
+        } else {
+          alert("無効なデータ形式です。");
+        }
+      } catch(err) {
+        alert("ファイルの読み込みに失敗しました。");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
   const[calY,setCalY]=useState(2026);
   const[calM,setCalM]=useState(3);
   const[selDay,setSelDay]=useState(null);
@@ -365,6 +399,9 @@ function JobChronicleApp({ currentUser, handleLogout }){
 
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{fontSize:12,fontWeight:700,color:T.t2}}><span style={{fontFamily:T.mf,marginRight:4}}>👤</span>{currentUser}</div>
+            <input type="file" id="import-json" style={{display:"none"}} accept=".json" onChange={handleImport} />
+            <button onClick={function(){document.getElementById('import-json').click();}} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>インポート</button>
+            <button onClick={exportData} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>エクスポート</button>
             <button onClick={handleLogout} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>ログアウト</button>
             <div style={{position:"relative"}}>
               <button onClick={function(){setTOpen(function(o){return !o;});}} className="ib"
