@@ -1,0 +1,898 @@
+import { useState, useMemo, useEffect } from "react";
+
+const D = {
+  bg:"#040B18",sur:"#081020",card:"#0C1628",chov:"#111F38",bor:"#182840",
+  acc:"#00D4FF",abg:"rgba(0,212,255,0.10)",agl:"rgba(0,212,255,0.20)",
+  gold:"#F0A500",grn:"#00D68F",red:"#FF4060",pur:"#9D7AF0",
+  t1:"#EDF3FF",t2:"#7E9CC0",t3:"#334D6A",
+  df:"'Syne',sans-serif",mf:"'DM Mono',monospace",bf:"'Noto Sans JP',sans-serif",
+  hbg:"rgba(4,11,24,0.88)",gl:"rgba(24,40,64,0.7)",isDark:true,
+};
+const P = {
+  bg:"#F4F1EB",sur:"#EAE6DC",card:"#FEFCF8",chov:"#F8F5EE",bor:"#D4CFC4",
+  acc:"#0F0F0F",abg:"rgba(15,15,15,0.07)",agl:"rgba(15,15,15,0.10)",
+  gold:"#7A5C00",grn:"#1A5C3A",red:"#B81C1C",pur:"#4A2D8C",
+  t1:"#0F0F0F",t2:"#3D3830",t3:"#7A7268",
+  df:"'Playfair Display',serif",mf:"'Courier Prime',monospace",bf:"'Noto Sans JP',sans-serif",
+  hbg:"rgba(244,241,235,0.94)",gl:"rgba(180,172,160,0.30)",isDark:false,
+};
+
+const STATUSES=["気になる","ES作成中","ES提出済","選考中","最終面接","内定","辞退","不合格"];
+const SC={気になる:{d:"#7E9CC0",p:"#6B5E52"},ES作成中:{d:"#F0A500",p:"#7A5C00"},ES提出済:{d:"#00D4FF",p:"#1E4D7A"},選考中:{d:"#9D7AF0",p:"#4A2D8C"},最終面接:{d:"#FF8C42",p:"#8B4500"},内定:{d:"#00D68F",p:"#1A5C3A"},辞退:{d:"#7E9CC0",p:"#7A7268"},不合格:{d:"#FF4060",p:"#B81C1C"}};
+const PRIORITY=["S","A","B","C"];
+const PC={S:{d:"#FF4060",p:"#B81C1C"},A:{d:"#F0A500",p:"#7A5C00"},B:{d:"#00D4FF",p:"#1E4D7A"},C:{d:"#7E9CC0",p:"#7A7268"}};
+const CHECKS=["マイページ登録","ES提出","説明会参加","OB/OG訪問","Webテスト","1次面接","2次面接","最終面接"];
+const ETYPES=["説明会","ES締切","面接","筆記試験","インターン","内定"];
+const DCOLS=["#00D4FF","#FF4060","#9D7AF0","#F0A500","#00D68F","#FF8C42","#E879F9","#38BDF8"];
+const PCOLS=["#0F0F0F","#B81C1C","#4A2D8C","#7A5C00","#1A5C3A","#8B4500","#7C3D6A","#1E4D7A"];
+const MO=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+const DW=["日","月","火","水","木","金","土"];
+
+const dStr=(y,m,d)=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const getToday=()=>{const t=new Date();return dStr(t.getFullYear(),t.getMonth(),t.getDate());};
+const dUntil=s=>{if(!s)return null;return Math.ceil((new Date(s)-new Date(getToday()))/86400000);};
+const between=(s,e)=>{const r=[];let c=new Date(s);const en=new Date(e);while(c<=en){r.push(c.toISOString().slice(0,10));c.setDate(c.getDate()+1);}return r;};
+const nid=a=>Math.max(0,...a.map(x=>x.id))+1;
+
+const IC=Object.fromEntries(CHECKS.map(k=>[k,false]));
+const IA={strength:"",weakness:"",opportunity:"",threat:"",culture:"",whyUs:"",questions:"",memo:""};
+
+const COMPANIES=[
+  {id:1,name:"ソニーグループ",url:"https://www.sony.com/ja/",status:"ES作成中",industry:"電機・精密",priority:"A",note:"ソフトウェアエンジニア志望",deadline:"2026-05-01",checklist:{...IC,マイページ登録:true,説明会参加:true},analysis:{...IA,strength:"AI×センシング研究が活発",weakness:"組織の複雑さ",opportunity:"センサー分野への大型投資",threat:"韓国・中国との競争",culture:"チャレンジ精神",whyUs:"無線通信研究との親和性",questions:"配属先の裁量度",memo:""}},
+  {id:2,name:"NTTデータ",url:"https://www.nttdata.com/jp/ja/",status:"選考中",industry:"IT・情報通信",priority:"A",note:"SE職・インフラ系",deadline:"2026-04-28",checklist:{...IC,マイページ登録:true,ES提出:true,説明会参加:true,Webテスト:true,"1次面接":true},analysis:{...IA,strength:"官公庁・金融に強い",weakness:"保守的な文化",opportunity:"DX需要拡大",threat:"外資ITの台頭",culture:"チームワーク重視",whyUs:"大規模インフラへの貢献",questions:"若手から上流工程に関われますか？",memo:""}},
+  {id:3,name:"トヨタ自動車",url:"https://www.toyota.co.jp/",status:"最終面接",industry:"自動車・製造",priority:"S",note:"技術職・自動運転部門",deadline:"2026-05-07",checklist:{...IC,マイページ登録:true,ES提出:true,説明会参加:true,"OB/OG訪問":true,Webテスト:true,"1次面接":true,"2次面接":true},analysis:{...IA,strength:"世界トップの資本力",weakness:"変化への対応スピード",opportunity:"EV・自動運転投資",threat:"テスラ・中国EV",culture:"カイゼン・現場主義",whyUs:"コネクテッドカー研究との接点",questions:"ソフトとハードの協業体制は？",memo:"最終面接スーツ必須・対面（名古屋）"}},
+  {id:4,name:"楽天グループ",url:"https://corp.rakuten.co.jp/",status:"気になる",industry:"EC・IT",priority:"B",note:"グローバル環境に興味",deadline:"",checklist:{...IC},analysis:{...IA,strength:"英語公用語・グローバル文化",weakness:"楽天モバイルの赤字",opportunity:"フィンテック拡大",threat:"AmazonとのEC競合",culture:"スピード感・フラット",whyUs:"グローバルSW開発経験",questions:"技術研修の内容は？",memo:""}},
+];
+
+const EVENTS=[
+  {id:1,companyId:1,type:"説明会",title:"ソニー オンライン説明会",dateStart:"2026-04-25",dateEnd:"2026-04-25",time:"14:00",note:"Zoom・録画なし",location:"オンライン",color:"#00D4FF",isMultiDay:false},
+  {id:2,companyId:1,type:"ES締切",title:"ソニー ES締切",dateStart:"2026-05-01",dateEnd:"2026-05-01",time:"23:59",note:"",location:"",color:"#FF4060",isMultiDay:false},
+  {id:3,companyId:2,type:"面接",title:"NTTデータ 2次面接",dateStart:"2026-04-28",dateEnd:"2026-04-28",time:"10:00",note:"Web面接",location:"オンライン",color:"#9D7AF0",isMultiDay:false},
+  {id:4,companyId:3,type:"面接",title:"トヨタ 最終面接",dateStart:"2026-05-07",dateEnd:"2026-05-07",time:"13:00",note:"スーツ・対面",location:"本社（名古屋）",color:"#9D7AF0",isMultiDay:false},
+  {id:5,companyId:2,type:"筆記試験",title:"NTTデータ Webテスト",dateStart:"2026-04-30",dateEnd:"2026-04-30",time:"指定なし",note:"玉手箱",location:"",color:"#F0A500",isMultiDay:false},
+  {id:6,companyId:1,type:"インターン",title:"ソニー 夏季インターン",dateStart:"2026-08-04",dateEnd:"2026-08-08",time:"9:30",note:"5日間・対面",location:"品川本社",color:"#00D68F",isMultiDay:true},
+  {id:7,companyId:3,type:"インターン",title:"トヨタ 5days仕事体験",dateStart:"2026-09-15",dateEnd:"2026-09-19",time:"9:00",note:"名古屋・交通費支給",location:"本社（名古屋）",color:"#F0A500",isMultiDay:true},
+];
+
+const CSS=`
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@400;700&family=Courier+Prime:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+@keyframes fu{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes bl{0%,100%{opacity:1;}50%{opacity:0;}}
+.fu{animation:fu .3s ease both;}
+.fu1{animation:fu .3s .06s ease both;}
+.fu2{animation:fu .3s .12s ease both;}
+.ch{transition:all .15s;}
+.ib{transition:opacity .15s;cursor:pointer;}
+.ib:hover{opacity:.75;}
+.pb{transition:all .15s;cursor:pointer;}
+.pb:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.nb{transition:color .15s;cursor:pointer;}
+`;
+
+function Tag({children,color,small}){
+  return <span style={{background:`${color}18`,color,border:`1px solid ${color}44`,borderRadius:5,padding:small?"1px 6px":"2px 8px",fontSize:small?9:11,fontWeight:700,whiteSpace:"nowrap"}}>{children}</span>;
+}
+
+function Ring({val,max,color,size}){
+  size=size||46;
+  const pct=max?Math.round(val/max*100):0;
+  const r=(size-6)/2,circ=2*Math.PI*r,dash=pct/100*circ;
+  return(
+    <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
+      <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(128,128,128,0.15)" strokeWidth={4}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4} strokeDasharray={dash+" "+(circ-dash)} strokeLinecap="round" style={{transition:"stroke-dasharray .5s"}}/>
+      </svg>
+      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:color}}>{pct}%</div>
+    </div>
+  );
+}
+
+function Modal({show,onClose,title,T,children}){
+  if(!show)return null;
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}} onClick={onClose}>
+      <div style={{background:T.card,border:"1px solid "+T.bor,borderRadius:20,padding:26,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.4)",animation:"fu .2s ease"}} onClick={function(e){e.stopPropagation();}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+          <h3 style={{fontFamily:T.df,fontSize:17,fontWeight:700,color:T.t1}}>{title}</h3>
+          <button onClick={onClose} className="ib" style={{background:"none",border:"1px solid "+T.bor,borderRadius:7,color:T.t3,width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function iSt(T){
+  return{width:"100%",background:T.sur,border:"1.5px solid "+T.bor,borderRadius:8,padding:"9px 12px",fontSize:13,color:T.t1,fontFamily:T.bf,marginBottom:12,display:"block"};
+}
+
+function MiniCal({cid,events,T}){
+  const[y,setY]=useState(2026);
+  const[m,setM]=useState(3);
+  const[sel,setSel]=useState(null);
+  const dim=new Date(y,m+1,0).getDate();
+  const fd=new Date(y,m,1).getDay();
+  const days=[];
+  for(let i=0;i<fd;i++)days.push(null);
+  for(let i=1;i<=dim;i++)days.push(i);
+  const cev=events.filter(function(e){return e.companyId===cid;});
+  function evd(ds){return cev.filter(function(e){return e.isMultiDay?between(e.dateStart,e.dateEnd).indexOf(ds)>=0:e.dateStart===ds;});}
+  const td=getToday();
+  return(
+    <div style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:12,padding:16,marginTop:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <button onClick={function(){if(m===0){setY(y-1);setM(11);}else setM(m-1);}} className="ib" style={{background:T.card,border:"1px solid "+T.bor,borderRadius:5,color:T.t2,padding:"2px 9px",fontSize:12}}>‹</button>
+        <span style={{fontFamily:T.df,fontSize:12,fontWeight:700,color:T.t1}}>{y}年 {MO[m]}</span>
+        <button onClick={function(){if(m===11){setY(y+1);setM(0);}else setM(m+1);}} className="ib" style={{background:T.card,border:"1px solid "+T.bor,borderRadius:5,color:T.t2,padding:"2px 9px",fontSize:12}}>›</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:3}}>
+        {DW.map(function(d,i){return <div key={d} style={{textAlign:"center",fontSize:9,fontWeight:700,padding:"2px 0",fontFamily:T.mf,color:i===0?T.red:i===6?T.pur:T.t3}}>{d}</div>;})}
+        {days.map(function(d,i){
+          var ds=d?dStr(y,m,d):null;
+          var des=ds?evd(ds):[];
+          var isT=ds===td,isS=d===sel,dw=i%7;
+          return(
+            <div key={i} className="ch" onClick={function(){if(d)setSel(d===sel?null:d);}} style={{minHeight:38,borderRadius:6,padding:3,cursor:d?"pointer":"default",background:isS?T.abg:isT?T.gold+"10":T.card,border:"1.5px solid "+(isS?T.acc:isT?T.gold+"55":T.bor)}}>
+              {d&&<div style={{fontSize:9,fontFamily:T.mf,color:isT?T.gold:dw===0?T.red:dw===6?T.pur:T.t2,fontWeight:isT?700:400}}>{d}</div>}
+              <div style={{display:"flex",flexDirection:"column",gap:1,marginTop:1}}>
+                {des.slice(0,2).map(function(ev){return <div key={ev.id} style={{height:3,borderRadius:2,background:ev.color||T.acc}}/>;})}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {sel&&(function(){
+        var ds=dStr(y,m,sel),des=evd(ds);
+        if(!des.length)return null;
+        return(
+          <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid "+T.bor}}>
+            {des.map(function(ev){return(
+              <div key={ev.id} style={{display:"flex",gap:7,alignItems:"flex-start",marginBottom:6}}>
+                <div style={{width:3,minHeight:16,borderRadius:2,background:ev.color||T.acc,flexShrink:0,marginTop:2}}/>
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:T.t1}}>{ev.title}</div>
+                  <div style={{fontSize:9,color:T.t3}}>{ev.time}{ev.isMultiDay?" 〜"+ev.dateEnd.slice(5):""}</div>
+                </div>
+              </div>
+            );})}
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+const TABS=[{k:"home",l:"ホーム"},{k:"companies",l:"企業"},{k:"calendar",l:"カレンダー"},{k:"events",l:"イベント"},{k:"analysis",l:"企業分析"},{k:"es",l:"ES管理"}];
+const DTABS=[{k:"info",l:"基本情報"},{k:"cal",l:"カレンダー"},{k:"analysis",l:"企業分析"},{k:"es",l:"ESメモ"}];
+
+function Login({ onLogin, T }) {
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!username.trim() || !password.trim()) {
+      setError("ユーザー名とパスワードを入力してください");
+      return;
+    }
+    const savedPassword = localStorage.getItem("job_pw_" + username);
+    
+    if (isLoginMode) {
+      if (!savedPassword) {
+        setError("ユーザーが見つかりません。新規登録してください。");
+        return;
+      }
+      if (savedPassword !== password) {
+        setError("パスワードが間違っています");
+        return;
+      }
+    } else {
+      if (savedPassword) {
+        setError("このユーザー名は既に登録されています");
+        return;
+      }
+      localStorage.setItem("job_pw_" + username, password);
+    }
+    onLogin(username);
+  }
+
+  const S = { width: "100%", background: T.sur, border: "1.5px solid " + T.bor, borderRadius: 8, padding: "10px 14px", fontSize: 14, color: T.t1, fontFamily: T.bf, marginBottom: 14, boxSizing: "border-box" };
+
+  return (
+    <div style={{ fontFamily: T.bf, background: T.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: T.t1 }}>
+      <div style={{ position: "fixed", inset: 0, backgroundImage: "linear-gradient(" + T.gl + " 1px,transparent 1px),linear-gradient(90deg," + T.gl + " 1px,transparent 1px)", backgroundSize: "48px 48px", opacity: 0.5, pointerEvents: "none" }} />
+      <div style={{ background: T.card, border: "1px solid " + T.bor, borderRadius: 20, padding: 32, width: "100%", maxWidth: 380, zIndex: 10, boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+        <h1 style={{ fontFamily: T.df, fontSize: 24, fontWeight: 800, textAlign: "center", marginBottom: 6 }}>MY JOB CHRONICLE</h1>
+        <p style={{ fontFamily: T.mf, fontSize: 11, color: T.t3, textAlign: "center", marginBottom: 24 }}>// Please login to continue</p>
+        
+        <div style={{ display: "flex", marginBottom: 20, borderBottom: "1px solid " + T.bor }}>
+          <button type="button" onClick={() => { setIsLoginMode(true); setError(""); }} style={{ flex: 1, background: "none", border: "none", padding: "10px 0", color: isLoginMode ? T.acc : T.t3, fontWeight: 700, borderBottom: isLoginMode ? "2px solid " + T.acc : "none", fontFamily: T.bf, cursor: "pointer", transition: "all 0.2s" }}>ログイン</button>
+          <button type="button" onClick={() => { setIsLoginMode(false); setError(""); }} style={{ flex: 1, background: "none", border: "none", padding: "10px 0", color: !isLoginMode ? T.acc : T.t3, fontWeight: 700, borderBottom: !isLoginMode ? "2px solid " + T.acc : "none", fontFamily: T.bf, cursor: "pointer", transition: "all 0.2s" }}>新規登録</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <input value={username} onChange={e => setUsername(e.target.value)} placeholder="ユーザー名" style={S} />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="パスワード" style={S} />
+          {error && <div style={{ color: T.red, fontSize: 12, marginBottom: 14, textAlign: "center", fontWeight: 700 }}>{error}</div>}
+          <button type="submit" className="pb" style={{ width: "100%", background: isLoginMode ? T.acc : T.grn, color: T.isDark ? T.bg : "#fff", border: "none", borderRadius: 10, padding: "12px 0", fontWeight: 800, fontSize: 14, fontFamily: T.bf }}>{isLoginMode ? "ログイン" : "アカウントを作成してログイン"}</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function JobChronicleApp({ currentUser, handleLogout }){
+  const[tid,setTid]=useState("dark");
+  const T=tid==="dark"?D:P;
+  const[tab,setTab]=useState("home");
+
+  const[cos,setCos]=useState(() => {
+    const saved = localStorage.getItem("job_cos_" + currentUser);
+    return saved ? JSON.parse(saved) : COMPANIES;
+  });
+  const[evs,setEvs]=useState(() => {
+    const saved = localStorage.getItem("job_evs_" + currentUser);
+    return saved ? JSON.parse(saved) : EVENTS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("job_cos_" + currentUser, JSON.stringify(cos));
+  }, [cos, currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem("job_evs_" + currentUser, JSON.stringify(evs));
+  }, [evs, currentUser]);
+  const[calY,setCalY]=useState(2026);
+  const[calM,setCalM]=useState(3);
+  const[selDay,setSelDay]=useState(null);
+  const[cMod,setCMod]=useState(false);
+  const[eMod,setEMod]=useState(false);
+  const[editC,setEditC]=useState(null);
+  const[editE,setEditE]=useState(null);
+  const[detId,setDetId]=useState(null);
+  const[detTab,setDetTab]=useState("info");
+  const[sq,setSq]=useState("");
+  const[fSt,setFSt]=useState("ALL");
+  const[fPr,setFPr]=useState("ALL");
+  const[tOpen,setTOpen]=useState(false);
+
+  function mkC(){return{name:"",url:"",status:"気になる",industry:"",priority:"B",note:"",deadline:"",checklist:Object.fromEntries(CHECKS.map(function(k){return[k,false];})),analysis:Object.assign({},IA)};}
+  function mkE(){return{companyId:cos[0]?cos[0].id:1,type:"説明会",title:"",dateStart:"",dateEnd:"",time:"",note:"",location:"",color:T.acc,isMultiDay:false};}
+  const[cForm,setCForm]=useState(mkC());
+  const[eForm,setEForm]=useState(mkE());
+
+  const td=getToday();
+  const EC=tid==="dark"?DCOLS:PCOLS;
+
+  function scolor(s){var m=SC[s];return m?(tid==="dark"?m.d:m.p):T.t2;}
+  function pcolor(p){var m=PC[p];return m?(tid==="dark"?m.d:m.p):T.t2;}
+  function cname(id){var c=cos.find(function(c){return c.id===parseInt(id);});return c?c.name:"不明";}
+  function evOnDay(ds){return evs.filter(function(e){return e.isMultiDay?between(e.dateStart,e.dateEnd).indexOf(ds)>=0:e.dateStart===ds;});}
+
+  const upcoming=useMemo(function(){return evs.filter(function(e){return e.dateStart>=td;}).sort(function(a,b){return a.dateStart.localeCompare(b.dateStart);}).slice(0,8);},[evs,td]);
+  const urgent=useMemo(function(){return cos.filter(function(c){var d=dUntil(c.deadline);return c.deadline&&d>=0&&d<=7;}).sort(function(a,b){return new Date(a.deadline)-new Date(b.deadline);});},[cos]);
+  const filtered=useMemo(function(){return cos.filter(function(c){var q=sq.toLowerCase();return(!q||c.name.toLowerCase().indexOf(q)>=0||c.industry.toLowerCase().indexOf(q)>=0)&&(fSt==="ALL"||c.status===fSt)&&(fPr==="ALL"||c.priority===fPr);});},[cos,sq,fSt,fPr]);
+
+  function toggleCk(cid,k){setCos(function(cs){return cs.map(function(c){if(c.id!==cid)return c;var cl=Object.assign({},c.checklist);cl[k]=!cl[k];return Object.assign({},c,{checklist:cl});});});}
+  function setAn(cid,f,v){setCos(function(cs){return cs.map(function(c){if(c.id!==cid)return c;return Object.assign({},c,{analysis:Object.assign({},c.analysis,{[f]:v})});});});}
+
+  function openAddC(){setEditC(null);setCForm(mkC());setCMod(true);}
+  function openEditC(c){setEditC(c);setCForm(Object.assign({},c,{checklist:Object.assign({},c.checklist),analysis:Object.assign({},c.analysis)}));setCMod(true);}
+  function saveC(){if(!cForm.name)return;if(editC){setCos(function(cs){return cs.map(function(c){return c.id===editC.id?Object.assign({},c,cForm):c;});});}else{setCos(function(cs){return cs.concat([Object.assign({id:nid(cs)},cForm)]);}); }setCMod(false);}
+  function delC(id){setCos(function(cs){return cs.filter(function(c){return c.id!==id;});});setEvs(function(es){return es.filter(function(e){return e.companyId!==id;});});setDetId(null);}
+
+  function openAddE(date){date=date||"";setEditE(null);var f=mkE();f.dateStart=date;f.dateEnd=date;setEForm(f);setEMod(true);}
+  function openEditE(ev){setEditE(ev);setEForm(Object.assign({},ev));setEMod(true);}
+  function saveE(){if(!eForm.title||!eForm.dateStart)return;var f=Object.assign({},eForm,{companyId:parseInt(eForm.companyId)});if(!f.dateEnd)f.dateEnd=f.dateStart;f.isMultiDay=f.dateEnd!==f.dateStart;if(editE){setEvs(function(es){return es.map(function(e){return e.id===editE.id?Object.assign({},e,f):e;});});}else{setEvs(function(es){return es.concat([Object.assign({id:nid(es)},f)]);});}setEMod(false);}
+  function delE(id){setEvs(function(es){return es.filter(function(e){return e.id!==id;});});}
+
+  var dim=new Date(calY,calM+1,0).getDate();
+  var fd=new Date(calY,calM,1).getDay();
+  var calDays=[];
+  for(var i=0;i<fd;i++)calDays.push(null);
+  for(var i=1;i<=dim;i++)calDays.push(i);
+
+  var detC=cos.find(function(c){return c.id===detId;});
+
+  var S=iSt(T);
+  var card={background:T.card,border:"1px solid "+T.bor,borderRadius:14,padding:"20px 22px"};
+  var bprim={background:T.acc,color:T.isDark?T.bg:"#fff",border:"none",borderRadius:10,padding:"10px 18px",fontWeight:800,fontSize:13,fontFamily:T.bf};
+  var bsec={background:T.sur,border:"1px solid "+T.bor,borderRadius:8,padding:"7px 12px",fontSize:12,color:T.t2,fontFamily:T.bf};
+
+  return(
+    <div style={{fontFamily:T.bf,background:T.bg,minHeight:"100vh",color:T.t1}}>
+      <style>{CSS}</style>
+      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient("+T.gl+" 1px,transparent 1px),linear-gradient(90deg,"+T.gl+" 1px,transparent 1px)",backgroundSize:"48px 48px",opacity:0.5,pointerEvents:"none"}}/>
+      {T.isDark&&<div style={{position:"fixed",inset:0,background:"radial-gradient(ellipse 90% 55% at 5% 0%,rgba(0,212,255,0.06),transparent 55%),radial-gradient(ellipse 70% 45% at 95% 100%,rgba(157,122,240,0.07),transparent 55%)",pointerEvents:"none"}}/>}
+
+      {/* HEADER */}
+      <div style={{position:"sticky",top:0,zIndex:100,background:T.hbg,backdropFilter:"blur(20px)",borderBottom:"1px solid "+T.bor}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:"0 22px",display:"flex",alignItems:"center",gap:2}}>
+          <div style={{marginRight:26,padding:"12px 0",flexShrink:0}}>
+            <div style={{fontFamily:T.df,fontWeight:800,fontSize:15,color:T.t1}}>
+              MY JOB CHRONICLE
+              {T.isDark&&<span style={{animation:"bl 1s step-end infinite",color:T.acc,marginLeft:2}}>_</span>}
+            </div>
+            <div style={{fontFamily:T.mf,fontSize:9,color:T.t3,marginTop:1}}>{T.isDark?"// your private command center":"— キャリアの軌跡を、丁寧に —"}</div>
+          </div>
+
+          {TABS.map(function(t){return(
+            <button key={t.k} className="nb" onClick={function(){setTab(t.k);setDetId(null);}}
+              style={{background:"none",border:"none",borderBottom:"2px solid "+(tab===t.k?T.acc:"transparent"),padding:"17px 12px",color:tab===t.k?T.acc:T.t2,fontWeight:600,fontSize:12,fontFamily:T.bf,whiteSpace:"nowrap"}}>
+              {t.l}
+            </button>
+          );})}
+
+          <div style={{flex:1}}/>
+          <span style={{fontFamily:T.mf,fontSize:10,color:T.t3,marginRight:12}}>{new Date().toLocaleDateString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",weekday:"short"})}</span>
+
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{fontSize:12,fontWeight:700,color:T.t2}}><span style={{fontFamily:T.mf,marginRight:4}}>👤</span>{currentUser}</div>
+            <button onClick={handleLogout} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>ログアウト</button>
+            <div style={{position:"relative"}}>
+              <button onClick={function(){setTOpen(function(o){return !o;});}} className="ib"
+                style={{...bsec,display:"flex",alignItems:"center",gap:7,padding:"7px 12px"}}>
+              <span style={{width:8,height:8,borderRadius:"50%",background:T.acc,display:"inline-block",boxShadow:T.isDark?"0 0 6px "+T.acc:"none"}}/>
+              {T.isDark?"DARK":"PAPER"} ▾
+            </button>
+            {tOpen&&(
+              <div style={{position:"absolute",right:0,marginTop:6,background:T.card,border:"1px solid "+T.bor,borderRadius:12,padding:8,minWidth:160,boxShadow:"0 16px 40px rgba(0,0,0,0.3)",zIndex:200}}>
+                {["dark","paper"].map(function(id){
+                  var th=id==="dark"?D:P;
+                  return(
+                    <button key={id} onClick={function(){setTid(id);setTOpen(false);}} className="ib"
+                      style={{width:"100%",background:tid===id?th.acc+"12":"none",border:"1px solid "+(tid===id?th.acc+"44":T.bor),borderRadius:8,padding:"9px 12px",marginBottom:4,display:"flex",alignItems:"center",gap:10,fontFamily:T.bf}}>
+                      <span style={{width:9,height:9,borderRadius:"50%",background:th.acc,boxShadow:id==="dark"?"0 0 7px "+th.acc:"none"}}/>
+                      <div style={{textAlign:"left"}}>
+                        <div style={{fontSize:12,fontWeight:700,color:th.t1,fontFamily:th.df}}>{id==="dark"?"DARK":"PAPER"}</div>
+                        <div style={{fontSize:9,color:th.t3}}>{id==="dark"?"ネイビー×シアン":"インク×ホワイト"}</div>
+                      </div>
+                      {tid===id&&<span style={{marginLeft:"auto",color:th.acc,fontSize:11}}>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:1280,margin:"0 auto",padding:"28px 22px",position:"relative"}}>
+
+        {/* HOME */}
+        {tab==="home"&&(
+          <div>
+            <div className="fu" style={{marginBottom:24}}>
+              <div style={{fontFamily:T.mf,fontSize:10,color:T.t3,letterSpacing:"0.1em",marginBottom:8}}>{T.isDark?"// COMMAND CENTER":"CHRONICLE"}</div>
+              <h1 style={{fontFamily:T.df,fontSize:T.isDark?26:30,fontWeight:800,color:T.t1,lineHeight:1.2}}>
+                {T.isDark?<span>Good luck,<br/><span style={{color:T.acc}}>今日も前進。</span></span>:<span>今日の就活、<br/>丁寧に積み重ねる。</span>}
+              </h1>
+            </div>
+
+            {urgent.length>0&&(
+              <div className="fu1" style={{background:T.red+"0D",border:"1px solid "+T.red+"44",borderRadius:12,padding:"14px 18px",marginBottom:18}}>
+                <div style={{fontSize:10,color:T.red,fontWeight:800,letterSpacing:"0.1em",marginBottom:8}}>⚠ DEADLINE ALERT</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:16}}>
+                  {urgent.map(function(c){var d=dUntil(c.deadline);return(
+                    <div key={c.id} style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontFamily:T.mf,fontSize:22,fontWeight:700,color:d===0?T.red:T.gold}}>{d}</span>
+                      <span style={{fontSize:11,color:T.t2}}>日後</span>
+                      <span style={{fontWeight:700,color:T.t1,fontSize:13}}>{c.name}</span>
+                    </div>
+                  );})}
+                </div>
+              </div>
+            )}
+
+            <div className="fu1" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
+              {[{l:"登録企業",v:cos.length,c:T.acc},{l:"選考中",v:cos.filter(function(c){return["ES提出済","選考中","最終面接"].indexOf(c.status)>=0;}).length,c:T.pur},{l:"内定",v:cos.filter(function(c){return c.status==="内定";}).length,c:T.grn},{l:"ES締切",v:evs.filter(function(e){return e.type==="ES締切"&&e.dateStart>=td;}).length,c:T.red},{l:"直近7日",v:upcoming.filter(function(e){var d=dUntil(e.dateStart);return d!==null&&d<=7;}).length,c:T.gold}].map(function(s){return(
+                <div key={s.l} className="ch" style={{background:T.card,border:"1px solid "+T.bor,borderRadius:12,padding:"16px 14px"}}>
+                  <div style={{fontFamily:T.mf,fontSize:26,color:s.c,lineHeight:1,marginBottom:4}}>{s.v}</div>
+                  <div style={{fontSize:10,color:T.t3}}>{s.l}</div>
+                </div>
+              );})}
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:14}}>
+              <div className="fu2" style={card}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <h3 style={{fontFamily:T.df,fontSize:14,fontWeight:700,color:T.t1}}>直近のスケジュール</h3>
+                  <button onClick={function(){openAddE("");}} className="pb" style={{background:T.abg,border:"1px solid "+T.acc+"44",color:T.acc,borderRadius:8,padding:"6px 12px",fontSize:12,fontWeight:700,fontFamily:T.bf}}>＋ 追加</button>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {upcoming.map(function(ev){
+                    var d=dUntil(ev.dateStart);
+                    return(
+                      <div key={ev.id} className="ch" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:9,padding:"10px 13px",display:"flex",alignItems:"center",gap:11}}>
+                        <div style={{textAlign:"center",minWidth:34}}>
+                          <div style={{fontFamily:T.mf,fontSize:15,fontWeight:700,color:ev.color||T.acc,lineHeight:1}}>{ev.dateStart.slice(8)}</div>
+                          <div style={{fontSize:8,color:T.t3}}>{MO[parseInt(ev.dateStart.slice(5,7))-1]}</div>
+                        </div>
+                        <div style={{width:2,height:28,background:ev.color||T.acc,borderRadius:2}}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:12,color:T.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.title}</div>
+                          <div style={{fontSize:10,color:T.t3}}>{cname(ev.companyId)}{ev.time?" · "+ev.time:""}{ev.isMultiDay?" 〜"+ev.dateEnd.slice(5):""}</div>
+                        </div>
+                        <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+                          <Tag color={ev.color||T.acc} small>{ev.type}</Tag>
+                          {ev.isMultiDay&&<Tag color={T.gold} small>複数日</Tag>}
+                          {d!==null&&d>=0&&d<=3&&<span style={{fontFamily:T.mf,fontSize:10,color:T.red,fontWeight:700}}>{d===0?"今日！":d+"d"}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="fu2" style={card}>
+                <h3 style={{fontFamily:T.df,fontSize:14,fontWeight:700,color:T.t1,marginBottom:14}}>企業別進捗</h3>
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                  {cos.map(function(c){
+                    var done=Object.values(c.checklist).filter(Boolean).length;
+                    var scc=scolor(c.status);
+                    return(
+                      <div key={c.id} style={{display:"flex",gap:10,alignItems:"center"}}>
+                        <Ring val={done} max={CHECKS.length} color={scc} size={42}/>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",gap:5,alignItems:"center",marginBottom:3}}>
+                            <span style={{background:pcolor(c.priority)+"18",color:pcolor(c.priority),border:"1px solid "+pcolor(c.priority)+"44",borderRadius:4,fontSize:9,fontWeight:800,padding:"1px 5px"}}>{c.priority}</span>
+                            <span style={{fontWeight:700,fontSize:12,color:T.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.name}</span>
+                          </div>
+                          <div style={{display:"flex",gap:5}}>
+                            <Tag color={scc} small>{c.status}</Tag>
+                            {c.deadline&&<span style={{fontSize:9,fontFamily:T.mf,color:dUntil(c.deadline)!==null&&dUntil(c.deadline)<=3?T.red:T.t3}}>{c.deadline}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* COMPANIES */}
+        {tab==="companies"&&!detId&&(
+          <div>
+            <div className="fu" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:18}}>
+              <h2 style={{fontFamily:T.df,fontSize:22,fontWeight:800,color:T.t1}}>企業管理</h2>
+              <button onClick={openAddC} className="pb" style={bprim}>＋ 企業追加</button>
+            </div>
+            <div className="fu1" style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+              <input value={sq} onChange={function(e){setSq(e.target.value);}} placeholder="企業名・業界で検索…" style={{...S,width:190,marginBottom:0,fontSize:12}}/>
+              <select value={fSt} onChange={function(e){setFSt(e.target.value);}} style={{...S,width:"auto",marginBottom:0,fontSize:11,cursor:"pointer"}}><option value="ALL">全ステータス</option>{STATUSES.map(function(s){return <option key={s}>{s}</option>;})}</select>
+              <select value={fPr} onChange={function(e){setFPr(e.target.value);}} style={{...S,width:"auto",marginBottom:0,fontSize:11,cursor:"pointer"}}><option value="ALL">全優先度</option>{PRIORITY.map(function(p){return <option key={p}>{p}</option>;})}</select>
+              <span style={{fontSize:10,color:T.t3,fontFamily:T.mf}}>{filtered.length}/{cos.length}</span>
+            </div>
+            <div className="fu2" style={{display:"flex",flexDirection:"column",gap:9}}>
+              {filtered.map(function(c){
+                var done=Object.values(c.checklist).filter(Boolean).length;
+                var scc=scolor(c.status);
+                var pcc=pcolor(c.priority);
+                return(
+                  <div key={c.id} className="ch" style={{...card,cursor:"pointer"}} onClick={function(){setDetId(c.id);setDetTab("info");}}>
+                    <div style={{display:"flex",gap:13,alignItems:"center"}}>
+                      <Ring val={done} max={CHECKS.length} color={scc} size={48}/>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:5}}>
+                          <span style={{background:pcc+"18",color:pcc,border:"1px solid "+pcc+"44",borderRadius:4,fontSize:10,fontWeight:800,padding:"2px 6px"}}>{c.priority}</span>
+                          <h3 style={{fontFamily:T.df,fontWeight:700,fontSize:15,color:T.t1}}>{c.name}</h3>
+                          <span style={{fontSize:11,color:T.t3}}>{c.industry}</span>
+                        </div>
+                        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:8}}>
+                          <Tag color={scc}>{c.status}</Tag>
+                          {c.deadline&&<span style={{fontSize:10,fontFamily:T.mf,color:dUntil(c.deadline)!==null&&dUntil(c.deadline)<=3?T.red:T.t3}}>締切:{c.deadline}</span>}
+                          {c.note&&<span style={{fontSize:11,color:T.t3}}>{c.note}</span>}
+                        </div>
+                        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                          {CHECKS.map(function(k){return(
+                            <button key={k} onClick={function(e){e.stopPropagation();toggleCk(c.id,k);}} className="ib"
+                              style={{background:c.checklist[k]?T.grn+"18":T.sur,border:"1px solid "+(c.checklist[k]?T.grn+"44":T.bor),borderRadius:5,padding:"2px 7px",fontSize:10,color:c.checklist[k]?T.grn:T.t3,fontFamily:T.bf,display:"flex",alignItems:"center",gap:2}}>
+                              {c.checklist[k]?"✓":"○"} {k}
+                            </button>
+                          );})}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:5,flexShrink:0}} onClick={function(e){e.stopPropagation();}}>
+                        <a href={c.url} target="_blank" rel="noreferrer" style={{background:T.abg,color:T.acc,border:"1px solid "+T.acc+"44",borderRadius:7,padding:"6px 10px",fontWeight:700,fontSize:11,textDecoration:"none"}}>↗</a>
+                        <button onClick={function(){openEditC(c);}} className="ib" style={bsec}>編集</button>
+                        <button onClick={function(){delC(c.id);}} className="ib" style={{...bsec,background:T.red+"12",color:T.red,border:"none"}}>削除</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* COMPANY DETAIL */}
+        {tab==="companies"&&detId&&detC&&(function(){
+          var c=detC;
+          var scc=scolor(c.status);
+          var pcc=pcolor(c.priority);
+          var done=Object.values(c.checklist).filter(Boolean).length;
+          return(
+            <div className="fu">
+              <button onClick={function(){setDetId(null);}} className="ib" style={{...bsec,marginBottom:16}}>← 一覧に戻る</button>
+              <div style={{...card,marginBottom:12}}>
+                <div style={{display:"flex",gap:13,alignItems:"flex-start"}}>
+                  <Ring val={done} max={CHECKS.length} color={scc} size={52}/>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",gap:7,alignItems:"center",marginBottom:6}}>
+                      <span style={{background:pcc+"18",color:pcc,border:"1px solid "+pcc+"44",borderRadius:4,fontSize:11,fontWeight:800,padding:"2px 7px"}}>{c.priority}</span>
+                      <h2 style={{fontFamily:T.df,fontSize:20,fontWeight:800,color:T.t1}}>{c.name}</h2>
+                      <span style={{fontSize:12,color:T.t3}}>{c.industry}</span>
+                    </div>
+                    <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                      <Tag color={scc}>{c.status}</Tag>
+                      {c.deadline&&<span style={{fontSize:11,fontFamily:T.mf,color:dUntil(c.deadline)!==null&&dUntil(c.deadline)<=3?T.red:T.t3}}>締切:{c.deadline}</span>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <a href={c.url} target="_blank" rel="noreferrer" style={{background:T.abg,color:T.acc,border:"1px solid "+T.acc+"44",borderRadius:7,padding:"7px 12px",fontWeight:700,fontSize:12,textDecoration:"none"}}>マイページ ↗</a>
+                    <button onClick={function(){openEditC(c);}} className="ib" style={bsec}>編集</button>
+                    <button onClick={function(){delC(c.id);}} className="ib" style={{...bsec,background:T.red+"12",color:T.red,border:"none"}}>削除</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{display:"flex",borderBottom:"1px solid "+T.bor,marginBottom:16}}>
+                {DTABS.map(function(dt){return(
+                  <button key={dt.k} className="nb" onClick={function(){setDetTab(dt.k);}}
+                    style={{background:"none",border:"none",borderBottom:"2px solid "+(detTab===dt.k?T.acc:"transparent"),padding:"10px 16px",color:detTab===dt.k?T.acc:T.t2,fontWeight:600,fontSize:13,fontFamily:T.bf}}>
+                    {dt.l}
+                  </button>
+                );})}
+              </div>
+
+              {detTab==="info"&&(
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                  <div style={card}>
+                    <div style={{fontFamily:T.mf,fontSize:10,color:T.t3,letterSpacing:"0.1em",marginBottom:10}}>CHECKLIST</div>
+                    <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+                      {CHECKS.map(function(k){return(
+                        <button key={k} onClick={function(){toggleCk(c.id,k);}} className="ib"
+                          style={{display:"flex",alignItems:"center",gap:3,background:c.checklist[k]?T.grn+"18":T.sur,border:"1px solid "+(c.checklist[k]?T.grn+"44":T.bor),borderRadius:6,padding:"5px 10px",fontSize:12,color:c.checklist[k]?T.grn:T.t2,fontFamily:T.bf}}>
+                          {c.checklist[k]?"✓":"○"} {k}
+                        </button>
+                      );})}
+                    </div>
+                    <div style={{background:T.sur,borderRadius:99,height:4,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:(done/CHECKS.length*100)+"%",background:T.isDark?"linear-gradient(90deg,"+T.acc+","+T.grn+")":"linear-gradient(90deg,"+T.t1+","+T.grn+")",borderRadius:99,transition:"width .5s"}}/>
+                    </div>
+                  </div>
+                  <div style={card}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                      <div style={{fontFamily:T.mf,fontSize:10,color:T.t3}}>EVENTS</div>
+                      <button onClick={function(){openAddE("");}} className="pb" style={{background:T.abg,border:"1px solid "+T.acc+"44",color:T.acc,borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:700,fontFamily:T.bf}}>＋</button>
+                    </div>
+                    {evs.filter(function(e){return e.companyId===c.id;}).length===0?<p style={{color:T.t3,fontSize:12}}>イベントなし</p>:(
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {evs.filter(function(e){return e.companyId===c.id;}).sort(function(a,b){return a.dateStart.localeCompare(b.dateStart);}).map(function(ev){return(
+                          <div key={ev.id} style={{display:"flex",gap:9,alignItems:"center",background:T.sur,borderRadius:8,padding:"9px 12px",border:"1px solid "+T.bor}}>
+                            <div style={{width:3,minHeight:18,borderRadius:2,background:ev.color||T.acc,flexShrink:0}}/>
+                            <div style={{flex:1}}>
+                              <div style={{fontWeight:700,fontSize:12,color:T.t1}}>{ev.title}</div>
+                              <div style={{fontSize:10,color:T.t3}}>{ev.dateStart}{ev.isMultiDay?" 〜 "+ev.dateEnd:""}{ev.time?" · "+ev.time:""}</div>
+                            </div>
+                            <Tag color={ev.color||T.acc} small>{ev.type}</Tag>
+                            <button onClick={function(){openEditE(ev);}} className="ib" style={{...bsec,padding:"3px 8px",fontSize:10}}>編集</button>
+                            <button onClick={function(){delE(ev.id);}} className="ib" style={{background:T.red+"12",border:"none",borderRadius:5,padding:"3px 8px",fontSize:10,color:T.red,fontFamily:T.bf}}>削除</button>
+                          </div>
+                        );})}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {detTab==="cal"&&<MiniCal cid={c.id} events={evs} T={T}/>}
+              {detTab==="analysis"&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {["strength","weakness","opportunity","threat","culture","whyUs","questions","memo"].map(function(k){
+                    var labels={strength:"強み",weakness:"弱み",opportunity:"機会",threat:"脅威",culture:"社風・文化",whyUs:"志望理由の軸",questions:"逆質問メモ",memo:"その他メモ"};
+                    var cols={strength:T.grn,weakness:T.red,opportunity:T.acc,threat:T.gold};
+                    var col=cols[k]||T.t3;
+                    return(
+                      <div key={k} style={{background:T.card,border:"1px solid "+T.bor,borderRadius:11,padding:"14px 16px"}}>
+                        <div style={{fontSize:10,color:col,fontFamily:T.mf,fontWeight:700,marginBottom:7}}>{labels[k]}</div>
+                        <textarea value={c.analysis[k]} onChange={function(e){setAn(c.id,k,e.target.value);}} rows={3} placeholder={labels[k]+"…"} style={{...S,fontSize:12,resize:"vertical",marginBottom:0}}/>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {detTab==="es"&&(
+                <div style={card}>
+                  <div style={{fontFamily:T.mf,fontSize:10,color:T.t3,marginBottom:10}}>ES NOTE</div>
+                  <textarea value={c.analysis.memo} onChange={function(e){setAn(c.id,"memo",e.target.value);}} rows={12} placeholder="ESの方針・自己PR・志望動機の下書きなど…" style={{...S,fontSize:13,resize:"vertical",lineHeight:1.8,marginBottom:0}}/>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* CALENDAR */}
+        {tab==="calendar"&&(
+          <div>
+            <div className="fu" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
+              <h2 style={{fontFamily:T.df,fontSize:22,fontWeight:800,color:T.t1}}>カレンダー</h2>
+              <button onClick={function(){openAddE("");}} className="pb" style={bprim}>＋ イベント</button>
+            </div>
+            <div className="fu1" style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:14}}>
+              <div style={card}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                  <button onClick={function(){if(calM===0){setCalY(function(y){return y-1;});setCalM(11);}else setCalM(function(m){return m-1;});}} className="ib" style={{...bsec,padding:"5px 11px",fontSize:13}}>‹</button>
+                  <span style={{fontFamily:T.df,fontWeight:700,fontSize:17,color:T.t1}}>{calY}年 {MO[calM]}</span>
+                  <button onClick={function(){if(calM===11){setCalY(function(y){return y+1;});setCalM(0);}else setCalM(function(m){return m+1;});}} className="ib" style={{...bsec,padding:"5px 11px",fontSize:13}}>›</button>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+                  {DW.map(function(d,i){return <div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,padding:"3px 0",fontFamily:T.mf,color:i===0?T.red:i===6?T.pur:T.t3}}>{d}</div>;})}
+                  {calDays.map(function(d,i){
+                    var ds=d?dStr(calY,calM,d):null;
+                    var des=ds?evOnDay(ds):[];
+                    var isT=ds===td,isS=d===selDay,dw=i%7;
+                    return(
+                      <div key={i} className="ch" onClick={function(){if(d)setSelDay(d===selDay?null:d);}} style={{minHeight:62,borderRadius:8,padding:5,cursor:d?"pointer":"default",background:isS?T.abg:isT?T.gold+"0E":T.sur,border:"1.5px solid "+(isS?T.acc:isT?T.gold+"55":T.bor)}}>
+                        {d&&<div style={{fontSize:11,fontFamily:T.mf,fontWeight:isT?700:400,marginBottom:3,color:isT?T.gold:dw===0?T.red:dw===6?T.pur:T.t2}}>{d}</div>}
+                        <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                          {des.slice(0,3).map(function(ev){
+                            var isSt=ev.dateStart===ds,isEn=ev.dateEnd===ds;
+                            var br=ev.isMultiDay?(isSt?"3px 0 0 3px":isEn?"0 3px 3px 0":"0"):"3px";
+                            return <div key={ev.id} style={{background:ev.color||T.acc,fontSize:8,padding:"1px 3px",fontWeight:700,color:T.isDark?"#000":"#fff",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",borderRadius:br,opacity:0.9}}>{isSt?ev.type:"·"}</div>;
+                          })}
+                          {des.length>3&&<div style={{fontSize:7,color:T.t3}}>+{des.length-3}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                {selDay?(function(){
+                  var ds=dStr(calY,calM,selDay);
+                  var des=evOnDay(ds);
+                  return(
+                    <div style={card}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                        <div>
+                          <div style={{fontFamily:T.mf,fontSize:10,color:T.t3}}>{MO[calM]}</div>
+                          <div style={{fontFamily:T.df,fontSize:24,fontWeight:800,color:T.t1}}>{selDay}<span style={{fontSize:12,color:T.t3,marginLeft:3}}>日</span></div>
+                        </div>
+                        <button onClick={function(){openAddE(ds);}} className="pb" style={{background:T.abg,border:"1px solid "+T.acc+"44",color:T.acc,borderRadius:7,padding:"6px 10px",fontSize:11,fontWeight:700,fontFamily:T.bf}}>＋</button>
+                      </div>
+                      {des.length===0?<div style={{textAlign:"center",padding:"24px 0",color:T.t3,fontSize:12}}>予定なし</div>:(
+                        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                          {des.map(function(ev){return(
+                            <div key={ev.id} style={{borderLeft:"3px solid "+(ev.color||T.acc),paddingLeft:11,paddingTop:5,paddingBottom:5}}>
+                              <div style={{fontWeight:700,fontSize:13,color:T.t1,marginBottom:2}}>{ev.title}</div>
+                              <div style={{fontSize:11,color:ev.color||T.acc,fontWeight:600}}>{cname(ev.companyId)}</div>
+                              <div style={{fontSize:10,color:T.t3,marginTop:2}}>{ev.time}{ev.isMultiDay?" ("+ev.dateStart+"〜"+ev.dateEnd+")":""}{ev.location?" · "+ev.location:""}</div>
+                              {ev.note&&<div style={{fontSize:10,color:T.t3,fontStyle:"italic",marginTop:2}}>{ev.note}</div>}
+                              {ev.isMultiDay&&<div style={{marginTop:4}}><Tag color={T.gold} small>複数日イベント</Tag></div>}
+                              <div style={{display:"flex",gap:5,marginTop:7}}>
+                                <button onClick={function(){openEditE(ev);}} className="ib" style={{...bsec,padding:"3px 9px",fontSize:10}}>編集</button>
+                                <button onClick={function(){delE(ev.id);}} className="ib" style={{background:T.red+"12",border:"none",borderRadius:5,padding:"3px 9px",fontSize:10,color:T.red,fontFamily:T.bf}}>削除</button>
+                              </div>
+                            </div>
+                          );})}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })():(
+                  <div style={{...card,border:"2px dashed "+T.bor,textAlign:"center",color:T.t3}}>
+                    <div style={{fontSize:24,marginBottom:8,opacity:0.3,paddingTop:20}}>⊡</div>
+                    <div style={{fontSize:12,paddingBottom:20}}>日付をクリック</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* EVENTS */}
+        {tab==="events"&&(
+          <div>
+            <div className="fu" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:16}}>
+              <h2 style={{fontFamily:T.df,fontSize:22,fontWeight:800,color:T.t1}}>イベント一覧</h2>
+              <button onClick={function(){openAddE("");}} className="pb" style={bprim}>＋ イベント追加</button>
+            </div>
+            <div className="fu1" style={{display:"flex",flexDirection:"column",gap:7}}>
+              {evs.slice().sort(function(a,b){return a.dateStart.localeCompare(b.dateStart);}).map(function(ev){return(
+                <div key={ev.id} className="ch" style={{...card,padding:"13px 18px",display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{textAlign:"center",minWidth:42,background:(ev.color||T.acc)+"12",border:"1px solid "+(ev.color||T.acc)+"33",borderRadius:8,padding:"6px 5px"}}>
+                    <div style={{fontFamily:T.mf,fontSize:15,fontWeight:700,color:ev.color||T.acc}}>{ev.dateStart.slice(8)}</div>
+                    <div style={{fontSize:8,color:ev.color||T.acc,opacity:0.7}}>{MO[parseInt(ev.dateStart.slice(5,7))-1]}</div>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,color:T.t1,marginBottom:2}}>{ev.title}</div>
+                    <div style={{fontSize:11,color:T.t3}}>{cname(ev.companyId)}{ev.time?" · "+ev.time:""}{ev.isMultiDay?" 〜 "+ev.dateEnd:""}{ev.location?" · "+ev.location:""}</div>
+                  </div>
+                  <div style={{display:"flex",gap:5,flexShrink:0,alignItems:"center"}}>
+                    <Tag color={ev.color||T.acc}>{ev.type}</Tag>
+                    {ev.isMultiDay&&<Tag color={T.gold}>複数日</Tag>}
+                    {(function(){var d=dUntil(ev.dateStart);return d!==null&&d>=0&&d<=3?<span style={{fontFamily:T.mf,fontSize:10,color:T.red,fontWeight:700}}>{d===0?"今日！":d+"d"}</span>:null;})()}
+                    <button onClick={function(){openEditE(ev);}} className="ib" style={bsec}>編集</button>
+                    <button onClick={function(){delE(ev.id);}} className="ib" style={{...bsec,background:T.red+"12",color:T.red,border:"none"}}>削除</button>
+                  </div>
+                </div>
+              );})}
+            </div>
+          </div>
+        )}
+
+        {/* ANALYSIS */}
+        {tab==="analysis"&&(
+          <div>
+            <div className="fu" style={{marginBottom:16}}>
+              <h2 style={{fontFamily:T.df,fontSize:22,fontWeight:800,color:T.t1}}>企業分析まとめ</h2>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {cos.map(function(c){
+                var scc=scolor(c.status);
+                var pcc=pcolor(c.priority);
+                return(
+                  <div key={c.id} className="fu1 ch" style={card}>
+                    <div style={{display:"flex",gap:9,alignItems:"center",marginBottom:12}}>
+                      <span style={{background:pcc+"18",color:pcc,border:"1px solid "+pcc+"44",borderRadius:4,fontSize:11,fontWeight:800,padding:"2px 7px"}}>{c.priority}</span>
+                      <h3 style={{fontFamily:T.df,fontSize:15,fontWeight:700,color:T.t1}}>{c.name}</h3>
+                      <Tag color={scc}>{c.status}</Tag>
+                      <span style={{fontSize:11,color:T.t3}}>{c.industry}</span>
+                      <button onClick={function(){setDetId(c.id);setDetTab("analysis");setTab("companies");}} className="pb"
+                        style={{marginLeft:"auto",background:T.abg,border:"1px solid "+T.acc+"44",color:T.acc,borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:700,fontFamily:T.bf}}>詳細編集 →</button>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+                      {[{k:"strength",l:"強み",col:T.grn},{k:"weakness",l:"弱み",col:T.red},{k:"opportunity",l:"機会",col:T.acc},{k:"threat",l:"脅威",col:T.gold}].map(function(x){return(
+                        <div key={x.k} style={{background:T.sur,border:"1px solid "+x.col+"1A",borderRadius:9,padding:"11px 13px"}}>
+                          <div style={{fontSize:9,color:x.col,fontWeight:800,marginBottom:5,fontFamily:T.mf}}>{x.l}</div>
+                          <div style={{fontSize:11,color:T.t2,lineHeight:1.6,minHeight:34}}>{c.analysis[x.k]||<span style={{color:T.t3,fontStyle:"italic"}}>未入力</span>}</div>
+                        </div>
+                      );})}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ES */}
+        {tab==="es"&&(
+          <div>
+            <div className="fu" style={{marginBottom:16}}>
+              <h2 style={{fontFamily:T.df,fontSize:22,fontWeight:800,color:T.t1}}>ES管理</h2>
+            </div>
+            <div className="fu1" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:18}}>
+              {[{l:"ES提出前",v:cos.filter(function(c){return["気になる","ES作成中"].indexOf(c.status)>=0;}).length,c:T.gold},{l:"ES提出済・選考中",v:cos.filter(function(c){return["ES提出済","選考中","最終面接"].indexOf(c.status)>=0;}).length,c:T.acc},{l:"内定",v:cos.filter(function(c){return c.status==="内定";}).length,c:T.grn}].map(function(s){return(
+                <div key={s.l} style={{background:T.card,border:"1px solid "+T.bor,borderRadius:12,padding:"14px 16px"}}>
+                  <div style={{fontFamily:T.mf,fontSize:24,color:s.c,lineHeight:1,marginBottom:4}}>{s.v}</div>
+                  <div style={{fontSize:11,color:T.t3}}>{s.l}</div>
+                </div>
+              );})}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {cos.map(function(c){
+                var done=Object.values(c.checklist).filter(Boolean).length;
+                var scc=scolor(c.status);
+                var pcc=pcolor(c.priority);
+                return(
+                  <div key={c.id} className="fu2" style={card}>
+                    <div style={{display:"flex",gap:11,alignItems:"center",marginBottom:11}}>
+                      <Ring val={done} max={CHECKS.length} color={scc} size={44}/>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+                          <span style={{background:pcc+"18",color:pcc,border:"1px solid "+pcc+"44",borderRadius:4,fontSize:10,fontWeight:800,padding:"1px 5px"}}>{c.priority}</span>
+                          <h3 style={{fontFamily:T.df,fontWeight:700,fontSize:14,color:T.t1}}>{c.name}</h3>
+                          <Tag color={scc}>{c.status}</Tag>
+                        </div>
+                        {c.deadline&&<div style={{fontSize:10,fontFamily:T.mf,color:dUntil(c.deadline)!==null&&dUntil(c.deadline)<=7?T.red:T.t3}}>締切:{c.deadline}</div>}
+                      </div>
+                      <a href={c.url} target="_blank" rel="noreferrer" style={{background:T.abg,border:"1px solid "+T.acc+"33",color:T.acc,borderRadius:7,padding:"6px 10px",fontSize:11,fontWeight:700,textDecoration:"none"}}>↗</a>
+                    </div>
+                    <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:9}}>
+                      {CHECKS.map(function(k){return(
+                        <button key={k} onClick={function(){toggleCk(c.id,k);}} className="ib"
+                          style={{background:c.checklist[k]?T.grn+"18":T.sur,border:"1px solid "+(c.checklist[k]?T.grn+"44":T.bor),borderRadius:5,padding:"3px 8px",fontSize:11,color:c.checklist[k]?T.grn:T.t3,fontFamily:T.bf,display:"flex",alignItems:"center",gap:2}}>
+                          {c.checklist[k]?"✓":"○"} {k}
+                        </button>
+                      );})}
+                    </div>
+                    <div style={{background:T.sur,borderRadius:99,height:3,marginBottom:11,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:(done/CHECKS.length*100)+"%",background:T.isDark?"linear-gradient(90deg,"+T.acc+","+T.grn+")":"linear-gradient(90deg,"+T.t1+","+T.grn+")",borderRadius:99,transition:"width .5s"}}/>
+                    </div>
+                    <div style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:9,padding:12}}>
+                      <div style={{fontSize:9,color:T.t3,fontFamily:T.mf,marginBottom:6}}>ES・自己分析メモ</div>
+                      <textarea value={c.analysis.memo} onChange={function(e){setAn(c.id,"memo",e.target.value);}} rows={3} placeholder="ESの方針・自己PRポイントなど…" style={{...S,fontSize:12,resize:"vertical",marginBottom:0,lineHeight:1.7}}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* COMPANY MODAL */}
+      <Modal show={cMod} onClose={function(){setCMod(false);}} title={editC?"企業を編集":"企業を追加"} T={T}>
+        <input value={cForm.name} onChange={function(e){setCForm(function(f){return Object.assign({},f,{name:e.target.value});});}} placeholder="企業名 *" style={S}/>
+        <input value={cForm.url} onChange={function(e){setCForm(function(f){return Object.assign({},f,{url:e.target.value});});}} placeholder="マイページURL" style={S}/>
+        <input value={cForm.industry} onChange={function(e){setCForm(function(f){return Object.assign({},f,{industry:e.target.value});});}} placeholder="業界" style={S}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+          <select value={cForm.status} onChange={function(e){setCForm(function(f){return Object.assign({},f,{status:e.target.value});});}} style={{...S,marginBottom:0}}>{STATUSES.map(function(s){return <option key={s}>{s}</option>;})}</select>
+          <select value={cForm.priority} onChange={function(e){setCForm(function(f){return Object.assign({},f,{priority:e.target.value});});}} style={{...S,marginBottom:0}}>{PRIORITY.map(function(p){return <option key={p}>{p}</option>;})}</select>
+        </div>
+        <input type="date" value={cForm.deadline} onChange={function(e){setCForm(function(f){return Object.assign({},f,{deadline:e.target.value});});}} style={S}/>
+        <textarea value={cForm.note} onChange={function(e){setCForm(function(f){return Object.assign({},f,{note:e.target.value});});}} rows={2} placeholder="メモ" style={{...S,resize:"vertical"}}/>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={function(){setCMod(false);}} style={{flex:1,background:T.sur,border:"1px solid "+T.bor,borderRadius:9,padding:"10px 0",fontWeight:700,color:T.t2,fontFamily:T.bf,cursor:"pointer"}}>キャンセル</button>
+          <button onClick={saveC} className="pb" style={{flex:2,...bprim,borderRadius:9,padding:"10px 0"}}>保存</button>
+        </div>
+      </Modal>
+
+      {/* EVENT MODAL */}
+      <Modal show={eMod} onClose={function(){setEMod(false);}} title={editE?"イベントを編集":"イベントを追加"} T={T}>
+        <select value={eForm.companyId} onChange={function(e){setEForm(function(f){return Object.assign({},f,{companyId:e.target.value});});}} style={S}>{cos.map(function(c){return <option key={c.id} value={c.id}>{c.name}</option>;})}</select>
+        <select value={eForm.type} onChange={function(e){setEForm(function(f){return Object.assign({},f,{type:e.target.value});});}} style={S}>{ETYPES.map(function(t){return <option key={t}>{t}</option>;})}</select>
+        <input value={eForm.title} onChange={function(e){setEForm(function(f){return Object.assign({},f,{title:e.target.value});});}} placeholder="タイトル *" style={S}/>
+        <label style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,cursor:"pointer"}}>
+          <div onClick={function(){setEForm(function(f){return Object.assign({},f,{isMultiDay:!f.isMultiDay,dateEnd:f.isMultiDay?f.dateStart:f.dateEnd});});}}
+            style={{width:36,height:20,borderRadius:10,background:eForm.isMultiDay?T.acc:T.bor,position:"relative",flexShrink:0,cursor:"pointer",transition:"background .2s"}}>
+            <div style={{position:"absolute",top:2,left:eForm.isMultiDay?16:2,width:16,height:16,borderRadius:"50%",background:T.isDark?T.bg:"#fff",transition:"left .2s"}}/>
+          </div>
+          <span style={{fontSize:12,color:T.t2,fontFamily:T.bf}}>複数日イベント（インターン等）</span>
+        </label>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+          <input type="date" value={eForm.dateStart} onChange={function(e){setEForm(function(f){return Object.assign({},f,{dateStart:e.target.value,dateEnd:f.isMultiDay?f.dateEnd:e.target.value});});}} style={{...S,marginBottom:0}}/>
+          {eForm.isMultiDay
+            ?<input type="date" value={eForm.dateEnd} onChange={function(e){setEForm(function(f){return Object.assign({},f,{dateEnd:e.target.value});});}} style={{...S,marginBottom:0}}/>
+            :<input type="time" value={eForm.time} onChange={function(e){setEForm(function(f){return Object.assign({},f,{time:e.target.value});});}} style={{...S,marginBottom:0}}/>
+          }
+        </div>
+        {eForm.isMultiDay&&<input type="time" value={eForm.time} onChange={function(e){setEForm(function(f){return Object.assign({},f,{time:e.target.value});});}} style={S}/>}
+        <input value={eForm.location} onChange={function(e){setEForm(function(f){return Object.assign({},f,{location:e.target.value});});}} placeholder="場所" style={S}/>
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:10,color:T.t3,marginBottom:8}}>カラー</div>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+            {EC.map(function(col){return(
+              <button key={col} onClick={function(){setEForm(function(f){return Object.assign({},f,{color:col});});}}
+                style={{width:22,height:22,borderRadius:"50%",background:col,cursor:"pointer",border:"2.5px solid "+(eForm.color===col?(T.isDark?"#fff":T.t1):"transparent"),transition:"all .15s"}}/>
+            );})}
+          </div>
+        </div>
+        <textarea value={eForm.note} onChange={function(e){setEForm(function(f){return Object.assign({},f,{note:e.target.value});});}} rows={2} placeholder="メモ" style={{...S,resize:"vertical"}}/>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={function(){setEMod(false);}} style={{flex:1,background:T.sur,border:"1px solid "+T.bor,borderRadius:9,padding:"10px 0",fontWeight:700,color:T.t2,fontFamily:T.bf,cursor:"pointer"}}>キャンセル</button>
+          <button onClick={saveE} className="pb" style={{flex:2,...bprim,borderRadius:9,padding:"10px 0"}}>保存</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+export default function App() {
+  const [currentUser, setCurrentUser] = useState(() => localStorage.getItem("job_currentUser") || null);
+
+  function handleLogin(user) {
+    setCurrentUser(user);
+    localStorage.setItem("job_currentUser", user);
+  }
+
+  function handleLogout() {
+    setCurrentUser(null);
+    localStorage.removeItem("job_currentUser");
+  }
+
+  if (!currentUser) {
+    return <Login onLogin={handleLogin} T={D} />;
+  }
+
+  return <JobChronicleApp currentUser={currentUser} handleLogout={handleLogout} />;
+}
