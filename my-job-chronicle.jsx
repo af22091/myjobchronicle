@@ -23,6 +23,7 @@ const PRIORITY=["S","A","B","C"];
 const PC={S:{d:"#FF4060",p:"#B81C1C"},A:{d:"#F0A500",p:"#7A5C00"},B:{d:"#00D4FF",p:"#1E4D7A"},C:{d:"#7E9CC0",p:"#7A7268"}};
 const CHECKS=["マイページ登録","ES提出","説明会参加","OB/OG訪問","Webテスト","1次面接","2次面接","最終面接"];
 const ETYPES=["説明会","ES締切","面接","筆記試験","インターン","内定"];
+const INDUSTRIES=["IT・情報通信","電機・精密","自動車・製造","商社","金融・保険","コンサルティング","不動産・建設","人材・教育","マスコミ・広告","官公庁・団体","その他"];
 const DCOLS=["#00D4FF","#FF4060","#9D7AF0","#F0A500","#00D68F","#FF8C42","#E879F9","#38BDF8"];
 const PCOLS=["#0F0F0F","#B81C1C","#4A2D8C","#7A5C00","#1A5C3A","#8B4500","#7C3D6A","#1E4D7A"];
 const MO=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
@@ -348,8 +349,8 @@ function JobChronicleApp({ currentUser, handleLogout }){
                       style={{width:"100%",background:tid===id?th.acc+"12":"none",border:"1px solid "+(tid===id?th.acc+"44":T.bor),borderRadius:8,padding:"9px 12px",marginBottom:4,display:"flex",alignItems:"center",gap:10,fontFamily:T.bf}}>
                       <span style={{width:9,height:9,borderRadius:"50%",background:th.acc,boxShadow:id==="dark"?"0 0 7px "+th.acc:"none"}}/>
                       <div style={{textAlign:"left"}}>
-                        <div style={{fontSize:12,fontWeight:700,color:th.t1,fontFamily:th.df}}>{id==="dark"?"DARK":"LIGHT"}</div>
-                        <div style={{fontSize:9,color:th.t3}}>{id==="dark"?"ネイビー×シアン":"インク×ホワイト"}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:T.t1,fontFamily:th.df}}>{id==="dark"?"DARK":"LIGHT"}</div>
+                        <div style={{fontSize:9,color:T.t3}}>{id==="dark"?"ネイビー×シアン":"インク×ホワイト"}</div>
                       </div>
                       {tid===id&&<span style={{marginLeft:"auto",color:th.acc,fontSize:11}}>✓</span>}
                     </button>
@@ -824,7 +825,8 @@ function JobChronicleApp({ currentUser, handleLogout }){
       <Modal show={cMod} onClose={function(){setCMod(false);}} title={editC?"企業を編集":"企業を追加"} T={T}>
         <input value={cForm.name} onChange={function(e){setCForm(function(f){return Object.assign({},f,{name:e.target.value});});}} placeholder="企業名 *" style={S}/>
         <input value={cForm.url} onChange={function(e){setCForm(function(f){return Object.assign({},f,{url:e.target.value});});}} placeholder="マイページURL" style={S}/>
-        <input value={cForm.industry} onChange={function(e){setCForm(function(f){return Object.assign({},f,{industry:e.target.value});});}} placeholder="業界" style={S}/>
+        <input list="industry-list" value={cForm.industry} onChange={function(e){setCForm(function(f){return Object.assign({},f,{industry:e.target.value});});}} placeholder="業界 (入力または選択)" style={S}/>
+        <datalist id="industry-list">{INDUSTRIES.map(function(i){return <option key={i} value={i}/>;})}</datalist>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
           <select value={cForm.status} onChange={function(e){setCForm(function(f){return Object.assign({},f,{status:e.target.value});});}} style={{...S,marginBottom:0}}>{STATUSES.map(function(s){return <option key={s}>{s}</option>;})}</select>
           <select value={cForm.priority} onChange={function(e){setCForm(function(f){return Object.assign({},f,{priority:e.target.value});});}} style={{...S,marginBottom:0}}>{PRIORITY.map(function(p){return <option key={p}>{p}</option>;})}</select>
