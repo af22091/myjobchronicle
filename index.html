@@ -273,9 +273,15 @@ function JobChronicleApp({ currentUser, handleLogout }){
     return saved ? JSON.parse(saved) : (currentUser === "demo" ? EVENTS : []);
   });
 
+  const[syncId,setSyncId]=useState(() => localStorage.getItem("job_syncId_" + currentUser) || "");
+
   useEffect(() => {
     localStorage.setItem("job_cos_" + currentUser, JSON.stringify(cos));
   }, [cos, currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem("job_syncId_" + currentUser, syncId);
+  }, [syncId, currentUser]);
 
   useEffect(() => {
     localStorage.setItem("job_evs_" + currentUser, JSON.stringify(evs));
@@ -313,6 +319,61 @@ function JobChronicleApp({ currentUser, handleLogout }){
     reader.readAsText(file);
     e.target.value = "";
   }
+
+  async function syncToCloud() {
+    try {
+      const data = { cos: cos, evs: evs };
+      if (syncId) {
+        const res = await fetch("https://jsonblob.com/api/jsonBlob/" + syncId, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) alert("クラウドに保存しました！\n同期コード: " + syncId);
+        else throw new Error("Update failed");
+      } else {
+        const res = await fetch("https://jsonblob.com/api/jsonBlob", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          const loc = res.headers.get("Location");
+          const newId = loc.split("/").pop();
+          setSyncId(newId);
+          alert("クラウドに新規保存しました！\n\n【重要】以下の同期コードをスマホ等で入力して復元できます。\n同期コード: " + newId);
+        } else throw new Error("Create failed");
+      }
+    } catch(err) {
+      alert("クラウド保存に失敗しました。");
+    }
+  }
+
+  async function syncFromCloud() {
+    const code = prompt("クラウドから復元します。\n同期コードを入力してください：", syncId);
+    if (!code) return;
+    try {
+      const res = await fetch("https://jsonblob.com/api/jsonBlob/" + code, {
+        headers: { "Accept": "application/json" }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.cos && data.evs) {
+          setCos(data.cos);
+          setEvs(data.evs);
+          setSyncId(code);
+          alert("クラウドから復元しました！");
+        } else {
+          alert("無効なデータです。");
+        }
+      } else {
+        alert("同期コードが見つからないか、エラーが発生しました。");
+      }
+    } catch(err) {
+      alert("復元に失敗しました。");
+    }
+  }
+
   const[calY,setCalY]=useState(2026);
   const[calM,setCalM]=useState(3);
   const[selDay,setSelDay]=useState(null);
@@ -400,6 +461,8 @@ function JobChronicleApp({ currentUser, handleLogout }){
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{fontSize:12,fontWeight:700,color:T.t2}}><span style={{fontFamily:T.mf,marginRight:4}}>👤</span>{currentUser}</div>
             <input type="file" id="import-json" style={{display:"none"}} accept=".json" onChange={handleImport} />
+            <button onClick={syncFromCloud} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>☁ 復元</button>
+            <button onClick={syncToCloud} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>☁ 保存</button>
             <button onClick={function(){document.getElementById('import-json').click();}} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>インポート</button>
             <button onClick={exportData} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>エクスポート</button>
             <button onClick={handleLogout} className="ib" style={{background:T.sur,border:"1px solid "+T.bor,borderRadius:6,padding:"4px 10px",fontSize:11,color:T.t2,fontFamily:T.bf}}>ログアウト</button>
@@ -418,7 +481,7 @@ function JobChronicleApp({ currentUser, handleLogout }){
                       style={{width:"100%",background:tid===id?th.acc+"12":"none",border:"1px solid "+(tid===id?th.acc+"44":T.bor),borderRadius:8,padding:"9px 12px",marginBottom:4,display:"flex",alignItems:"center",gap:10,fontFamily:T.bf}}>
                       <span style={{width:9,height:9,borderRadius:"50%",background:th.acc,boxShadow:id==="dark"?"0 0 7px "+th.acc:"none"}}/>
                       <div style={{textAlign:"left"}}>
-                        <div style={{fontSize:12,fontWeight:700,color:T.t1,fontFamily:th.df}}>{id==="dark"?"DARK":"LIGHT"}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:T.t1,fontFamily:T.bf}}>{id==="dark"?"DARK":"LIGHT"}</div>
                         <div style={{fontSize:9,color:T.t3}}>{id==="dark"?"ネイビー×シアン":"インク×ホワイト"}</div>
                       </div>
                       {tid===id&&<span style={{marginLeft:"auto",color:th.acc,fontSize:11}}>✓</span>}
@@ -460,8 +523,8 @@ function JobChronicleApp({ currentUser, handleLogout }){
             )}
 
             <div className="fu1" style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:20}}>
-              {[{l:"登録企業",v:cos.length,c:T.acc},{l:"選考中",v:cos.filter(function(c){return["ES提出済","選考中","最終面接"].indexOf(c.status)>=0;}).length,c:T.pur},{l:"内定",v:cos.filter(function(c){return c.status==="内定";}).length,c:T.grn},{l:"ES締切",v:evs.filter(function(e){return e.type==="ES締切"&&e.dateStart>=td;}).length,c:T.red},{l:"直近7日",v:upcoming.filter(function(e){var d=dUntil(e.dateStart);return d!==null&&d<=7;}).length,c:T.gold}].map(function(s){return(
-                <div key={s.l} className="ch" style={{background:T.card,border:"1px solid "+T.bor,borderRadius:12,padding:"16px 14px"}}>
+              {[{l:"登録企業",v:cos.length,c:T.acc,act:function(){setTab("companies");setFSt("ALL");}},{l:"選考中",v:cos.filter(function(c){return["ES提出済","選考中","最終面接"].indexOf(c.status)>=0;}).length,c:T.pur,act:function(){setTab("companies");setFSt("選考中");}},{l:"内定",v:cos.filter(function(c){return c.status==="内定";}).length,c:T.grn,act:function(){setTab("companies");setFSt("内定");}},{l:"ES締切",v:evs.filter(function(e){return e.type==="ES締切"&&e.dateStart>=td;}).length,c:T.red,act:function(){setTab("calendar");}},{l:"直近7日",v:upcoming.filter(function(e){var d=dUntil(e.dateStart);return d!==null&&d<=7;}).length,c:T.gold,act:function(){setTab("calendar");}}].map(function(s){return(
+                <div key={s.l} onClick={s.act} className="ch" style={{background:T.card,border:"1px solid "+T.bor,borderRadius:12,padding:"16px 14px",cursor:"pointer"}}>
                   <div style={{fontFamily:T.mf,fontSize:26,color:s.c,lineHeight:1,marginBottom:4}}>{s.v}</div>
                   <div style={{fontSize:10,color:T.t3}}>{s.l}</div>
                 </div>
@@ -699,7 +762,7 @@ function JobChronicleApp({ currentUser, handleLogout }){
               <div style={card}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                   <button onClick={function(){if(calM===0){setCalY(function(y){return y-1;});setCalM(11);}else setCalM(function(m){return m-1;});}} className="ib" style={{...bsec,padding:"5px 11px",fontSize:13}}>‹</button>
-                  <span style={{fontFamily:T.df,fontWeight:700,fontSize:17,color:T.t1}}>{calY}年 {MO[calM]}</span>
+                  <span style={{fontFamily:T.bf,fontWeight:700,fontSize:17,color:T.t1}}>{calY}年 {MO[calM]}</span>
                   <button onClick={function(){if(calM===11){setCalY(function(y){return y+1;});setCalM(0);}else setCalM(function(m){return m+1;});}} className="ib" style={{...bsec,padding:"5px 11px",fontSize:13}}>›</button>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
