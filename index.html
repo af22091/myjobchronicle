@@ -302,7 +302,7 @@ function JobChronicleApp({ currentUser, handleLogout }){
 
   function scolor(s){var m=SC[s];return m?(tid==="dark"?m.d:m.p):T.t2;}
   function pcolor(p){var m=PC[p];return m?(tid==="dark"?m.d:m.p):T.t2;}
-  function cname(id){var c=cos.find(function(c){return c.id===parseInt(id);});return c?c.name:"不明";}
+  function cname(id){var c=cos.find(function(c){return c.id===parseInt(id);});return c?c.name:(id||"不明");}
   function evOnDay(ds){return evs.filter(function(e){return e.isMultiDay?between(e.dateStart,e.dateEnd).indexOf(ds)>=0:e.dateStart===ds;});}
 
   const upcoming=useMemo(function(){return evs.filter(function(e){return e.dateStart>=td;}).sort(function(a,b){return a.dateStart.localeCompare(b.dateStart);}).slice(0,8);},[evs,td]);
@@ -319,7 +319,7 @@ function JobChronicleApp({ currentUser, handleLogout }){
 
   function openAddE(date){date=date||"";setEditE(null);var f=mkE();f.dateStart=date;f.dateEnd=date;setEForm(f);setEMod(true);}
   function openEditE(ev){setEditE(ev);setEForm(Object.assign({},ev));setEMod(true);}
-  function saveE(){if(!eForm.title||!eForm.dateStart)return;var f=Object.assign({},eForm,{companyId:parseInt(eForm.companyId)});if(!f.dateEnd)f.dateEnd=f.dateStart;f.isMultiDay=f.dateEnd!==f.dateStart;if(editE){setEvs(function(es){return es.map(function(e){return e.id===editE.id?Object.assign({},e,f):e;});});}else{setEvs(function(es){return es.concat([Object.assign({id:nid(es)},f)]);});}setEMod(false);}
+  function saveE(){if(!eForm.title||!eForm.dateStart)return;var t=eForm.companyName!==undefined?eForm.companyName:eForm.companyId;var m=cos.find(function(c){return c.name===t||c.id===parseInt(t);});var f=Object.assign({},eForm,{companyId:m?m.id:(t||"")});delete f.companyName;if(!f.dateEnd)f.dateEnd=f.dateStart;f.isMultiDay=f.dateEnd!==f.dateStart;if(editE){setEvs(function(es){return es.map(function(e){return e.id===editE.id?Object.assign({},e,f):e;});});}else{setEvs(function(es){return es.concat([Object.assign({id:nid(es)},f)]);});}setEMod(false);}
   function delE(id){setEvs(function(es){return es.filter(function(e){return e.id!==id;});});}
 
   var dim=new Date(calY,calM+1,0).getDate();
@@ -871,7 +871,8 @@ function JobChronicleApp({ currentUser, handleLogout }){
 
       {/* EVENT MODAL */}
       <Modal show={eMod} onClose={function(){setEMod(false);}} title={editE?"イベントを編集":"イベントを追加"} T={T}>
-        <select value={eForm.companyId} onChange={function(e){setEForm(function(f){return Object.assign({},f,{companyId:e.target.value});});}} style={S}>{cos.map(function(c){return <option key={c.id} value={c.id}>{c.name}</option>;})}</select>
+        <input list="company-list" value={eForm.companyName!==undefined?eForm.companyName:cname(eForm.companyId)} onChange={function(e){setEForm(function(f){return Object.assign({},f,{companyName:e.target.value});});}} placeholder="関連企業・主催者 (入力または選択)" style={S}/>
+        <datalist id="company-list">{cos.map(function(c){return <option key={c.id} value={c.name}/>;})}</datalist>
         <input list="etypes-list" value={eForm.type} onChange={function(e){setEForm(function(f){return Object.assign({},f,{type:e.target.value});});}} placeholder="イベント種別 (入力または選択)" style={S}/>
         <datalist id="etypes-list">{ETYPES.map(function(t){return <option key={t} value={t}/>;})}</datalist>
         <input value={eForm.title} onChange={function(e){setEForm(function(f){return Object.assign({},f,{title:e.target.value});});}} placeholder="タイトル *" style={S}/>
