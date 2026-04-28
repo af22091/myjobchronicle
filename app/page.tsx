@@ -178,8 +178,9 @@ export default function LandingPage() {
                 boxShadow: 'var(--shadow-sm)',
               }}>
                 <div style={{
-                  fontFamily: 'var(--mf)', fontSize: 36, fontWeight: 700,
+                  fontFamily: 'var(--sf)', fontSize: 40, fontWeight: 800,
                   color: 'var(--acc)', opacity: 0.18, flexShrink: 0, lineHeight: 1,
+                  letterSpacing: '-0.03em',
                 }}>
                   {s.num}
                 </div>
