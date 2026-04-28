@@ -37,12 +37,12 @@ export interface Company {
   id: string
   user_id: string
   name: string
-  url: string
+  url: string | null
   status: Status
-  industry: string
+  industry: string | null
   priority: Priority
-  note: string
-  deadline: string
+  note: string | null
+  deadline: string | null
   checklist: Checklist
   analysis: Analysis
   created_at: string
@@ -53,14 +53,14 @@ export type EventType = '説明会' | 'ES締切' | '面接' | '筆記試験' | '
 export interface JobEvent {
   id: string
   user_id: string
-  company_id: string
+  company_id: string | null
   type: EventType | string
   title: string
   date_start: string
   date_end: string
-  time: string
-  note: string
-  location: string
+  time: string | null
+  note: string | null
+  location: string | null
   color: string
   is_multi_day: boolean
   created_at: string

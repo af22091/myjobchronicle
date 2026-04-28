@@ -28,7 +28,7 @@ export default function HomeTab({ companies, events }: TabProps) {
   // 締切が近い企業（7日以内）
   const soonDeadlines = companies
     .filter(c => c.deadline && c.deadline >= today)
-    .sort((a, b) => a.deadline.localeCompare(b.deadline))
+    .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
     .slice(0, 5)
 
   const card: React.CSSProperties = {
@@ -102,7 +102,7 @@ export default function HomeTab({ companies, events }: TabProps) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {soonDeadlines.map(co => {
                 const daysLeft = Math.ceil(
-                  (new Date(co.deadline).getTime() - new Date(today).getTime()) / 86400000
+                  (new Date(co.deadline!).getTime() - new Date(today).getTime()) / 86400000
                 )
                 return (
                   <div key={co.id} style={{

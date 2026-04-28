@@ -25,7 +25,8 @@ export default function EventsTab({ companies, events, onSaveEvent, onDeleteEven
   const upcoming = filtered.filter(e => e.date_start >= today)
   const past = filtered.filter(e => e.date_start < today)
 
-  function companyName(id: string) {
+  function companyName(id: string | null) {
+    if (!id) return ''
     return companies.find(c => c.id === id)?.name || ''
   }
 
