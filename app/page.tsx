@@ -136,7 +136,7 @@ export default function LandingPage() {
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '80px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
           <p style={{ fontFamily: 'var(--mf)', fontSize: 11, color: 'var(--t3)', letterSpacing: '0.1em', marginBottom: 12 }}>FEATURES</p>
-          <h2 style={{ fontFamily: 'var(--df)', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800 }}>
+          <h2 style={{ fontFamily: 'var(--bf)', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800 }}>
             就活に必要なすべてが<br />ひとつに
           </h2>
         </div>
@@ -155,7 +155,7 @@ export default function LandingPage() {
               }}
             >
               <div style={{ fontSize: 32, marginBottom: 14 }}>{f.icon}</div>
-              <h3 style={{ fontFamily: 'var(--df)', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>{f.title}</h3>
+              <h3 style={{ fontFamily: 'var(--bf)', fontSize: 18, fontWeight: 700, marginBottom: 10 }}>{f.title}</h3>
               <p style={{ fontSize: 13.5, color: 'var(--t2)', lineHeight: 1.75 }}>{f.desc}</p>
             </div>
           ))}
@@ -166,7 +166,7 @@ export default function LandingPage() {
       <section style={{ background: 'var(--sur)', padding: '80px 24px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontFamily: 'var(--mf)', fontSize: 11, color: 'var(--t3)', letterSpacing: '0.1em', marginBottom: 12 }}>HOW IT WORKS</p>
-          <h2 style={{ fontFamily: 'var(--df)', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, marginBottom: 56 }}>
+          <h2 style={{ fontFamily: 'var(--bf)', fontSize: 'clamp(24px, 4vw, 36px)', fontWeight: 800, marginBottom: 56 }}>
             3ステップで始められる
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -185,7 +185,7 @@ export default function LandingPage() {
                   {s.num}
                 </div>
                 <div>
-                  <h3 style={{ fontFamily: 'var(--df)', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>{s.title}</h3>
+                  <h3 style={{ fontFamily: 'var(--bf)', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>{s.title}</h3>
                   <p style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.7 }}>{s.desc}</p>
                 </div>
               </div>
