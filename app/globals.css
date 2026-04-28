@@ -1,0 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;800&family=Courier+Prime:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* White/Paper theme tokens */
+  --bg:       #F5F3EF;
+  --sur:      #ECEAE4;
+  --card:     #FEFCF8;
+  --chov:     #F4F2EC;
+  --bor:      #D8D3C8;
+  --acc:      #1A1A2E;
+  --acc2:     #2D6A4F;
+  --gold:     #7A5C00;
+  --grn:      #1A5C3A;
+  --red:      #B81C1C;
+  --pur:      #4A2D8C;
+  --orange:   #8B4500;
+  --t1:       #0F0F0F;
+  --t2:       #3D3830;
+  --t3:       #7A7268;
+  --t4:       #B0A89C;
+  --df: 'Playfair Display', serif;
+  --mf: 'Courier Prime', monospace;
+  --bf: 'Noto Sans JP', sans-serif;
+  --sf: 'Inter', sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.14);
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--bf);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== TYPOGRAPHY ===== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--df);
+  line-height: 1.2;
+  color: var(--t1);
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up  { animation: fadeUp  0.4s ease both; }
+.fade-up1 { animation: fadeUp  0.4s 0.08s ease both; }
+.fade-up2 { animation: fadeUp  0.4s 0.16s ease both; }
+.fade-up3 { animation: fadeUp  0.4s 0.24s ease both; }
+.fade-in  { animation: fadeIn  0.3s ease both; }
+.scale-in { animation: scaleIn 0.25s ease both; }
+
+/* ===== UTILITIES ===== */
+.hover-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.hover-dim {
+  transition: opacity 0.15s;
+  cursor: pointer;
+}
+.hover-dim:hover { opacity: 0.72; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--sur); }
+::-webkit-scrollbar-thumb { background: var(--bor); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--t3); }
+
+/* ===== FORM ELEMENTS ===== */
+input, select, textarea {
+  font-family: var(--bf);
+  font-size: 13px;
+  color: var(--t1);
+  background: var(--card);
+  border: 1.5px solid var(--bor);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  width: 100%;
+  transition: border-color 0.15s;
+  outline: none;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--acc);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--t4);
+}
+textarea { resize: vertical; }
+
+/* ===== BUTTON BASE ===== */
+button {
+  font-family: var(--bf);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.15s;
+}
+
+/* ===== STATUS COLORS ===== */
+.status-気になる    { color: #6B5E52; }
+.status-ES作成中    { color: #7A5C00; }
+.status-ES提出済    { color: #1E4D7A; }
+.status-選考中      { color: #4A2D8C; }
+.status-最終面接    { color: #8B4500; }
+.status-内定        { color: #1A5C3A; }
+.status-辞退        { color: #7A7268; }
+.status-不合格      { color: #B81C1C; }
