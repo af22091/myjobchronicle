@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { TabProps } from '@/components/AppShell'
 import type { Analysis } from '@/types'
 import RichEditor from '@/components/RichEditor'
@@ -24,11 +24,43 @@ export default function AnalysisTab({ companies, onUpdateAnalysis }: TabProps) {
     strength: '', weakness: '', opportunity: '', threat: '',
     culture: '', whyUs: '', questions: '', memo: '',
   })
-  const [saved, setSaved] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const company = companies.find(c => c.id === selectedId)
 
+  const setField = useCallback((key: keyof Analysis, val: string) => {
+    setDraft(prev => ({ ...prev, [key]: val }))
+    setStatus('idle')
+  }, [])
+
+  async function handleSave(currentDraft: Analysis) {
+    if (!selectedId) return
+    setStatus('saving')
+    await onUpdateAnalysis(selectedId, currentDraft)
+    setStatus('saved')
+    setTimeout(() => setStatus('idle'), 2000)
+  }
+
+  // 自動保存ロジック
+  useEffect(() => {
+    // 全て空の初期状態はスキップ
+    const isInitial = Object.values(draft).every(v => v === '')
+    if (isInitial) return
+
+    if (timerRef.current) clearTimeout(timerRef.current)
+    
+    timerRef.current = setTimeout(() => {
+      handleSave(draft)
+    }, 1500)
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [draft])
+
   function selectCompany(id: string) {
+    if (timerRef.current) clearTimeout(timerRef.current)
     setSelectedId(id)
     const co = companies.find(c => c.id === id)
     if (co?.analysis) {
@@ -36,19 +68,7 @@ export default function AnalysisTab({ companies, onUpdateAnalysis }: TabProps) {
     } else {
       setDraft({ strength: '', weakness: '', opportunity: '', threat: '', culture: '', whyUs: '', questions: '', memo: '' })
     }
-    setSaved(false)
-  }
-
-  const setField = useCallback((key: keyof Analysis, val: string) => {
-    setDraft(prev => ({ ...prev, [key]: val }))
-    setSaved(false)
-  }, [])
-
-  async function handleSave() {
-    if (!selectedId) return
-    await onUpdateAnalysis(selectedId, draft)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setStatus('idle')
   }
 
   const ta: React.CSSProperties = {
@@ -95,17 +115,13 @@ export default function AnalysisTab({ companies, onUpdateAnalysis }: TabProps) {
             <h2 style={{ fontFamily: 'var(--df)', fontSize: 20, fontWeight: 800 }}>
               {company?.name}
             </h2>
-            <button
-              id="save-analysis-btn"
-              onClick={handleSave}
-              style={{
-                background: saved ? 'var(--grn)' : 'var(--acc)', color: '#fff', border: 'none',
-                borderRadius: 8, padding: '9px 24px', fontSize: 13, fontWeight: 700,
-                fontFamily: 'var(--bf)', cursor: 'pointer', transition: 'background 0.2s',
-              }}
-            >
-              {saved ? '✅ 保存しました' : '保存する'}
-            </button>
+            <div style={{
+              fontSize: 12, fontWeight: 700,
+              color: status === 'saving' ? 'var(--acc)' : status === 'saved' ? 'var(--acc2)' : 'var(--t4)',
+              transition: 'all 0.3s',
+            }}>
+              {status === 'saving' ? '● 保存中...' : status === 'saved' ? '✓ 保存しました' : '自動保存'}
+            </div>
           </div>
 
           {/* SWOTグリッド */}

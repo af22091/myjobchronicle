@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { TabProps } from '@/components/AppShell'
 import RichEditor from '@/components/RichEditor'
 
@@ -14,11 +14,39 @@ export default function EsTab({ companies, onSaveCompany, onUpdateAnalysis }: Ta
   const [selectedId, setSelectedId] = useState('')
   const [activeSection, setActiveSection] = useState('whyUs')
   const [draft, setDraft] = useState<Record<string, string>>({})
-  const [saved, setSaved] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const company = companies.find(c => c.id === selectedId)
 
+  async function handleSave(currentDraft: Record<string, string>) {
+    if (!selectedId || !company) return
+    setStatus('saving')
+    const newAnalysis = { ...(company.analysis || {}), ...currentDraft }
+    await onUpdateAnalysis(selectedId, newAnalysis as never)
+    setStatus('saved')
+    setTimeout(() => setStatus('idle'), 2000)
+  }
+
+  // 自動保存ロジック
+  useEffect(() => {
+    if (Object.keys(draft).length === 0) return
+    
+    // 既存のタイマーをクリア
+    if (timerRef.current) clearTimeout(timerRef.current)
+
+    // 新しいタイマーを設定（1.5秒入力が止まったら保存）
+    timerRef.current = setTimeout(() => {
+      handleSave(draft)
+    }, 1500)
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [draft])
+
   function selectCompany(id: string) {
+    if (timerRef.current) clearTimeout(timerRef.current) // 会社切り替え時にタイマー停止
     setSelectedId(id)
     const co = companies.find(c => c.id === id)
     setDraft({
@@ -26,15 +54,7 @@ export default function EsTab({ companies, onSaveCompany, onUpdateAnalysis }: Ta
       strength: co?.analysis?.strength ?? '',
       memo:     co?.analysis?.memo     ?? '',
     })
-    setSaved(false)
-  }
-
-  async function handleSave() {
-    if (!selectedId || !company) return
-    const newAnalysis = { ...(company.analysis || {}), ...draft }
-    await onUpdateAnalysis(selectedId, newAnalysis as never)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setStatus('idle')
   }
 
   const wordCount = (html: string) => {
@@ -117,25 +137,19 @@ export default function EsTab({ companies, onSaveCompany, onUpdateAnalysis }: Ta
                     <span style={{ fontSize: 12, color: 'var(--t3)', fontFamily: 'var(--mf)' }}>
                       {wordCount(draft[s.key] || '')} 文字
                     </span>
-                    <button
-                      id="save-es-btn"
-                      onClick={handleSave}
-                      style={{
-                        background: saved ? 'var(--grn)' : 'var(--acc)',
-                        color: '#fff', border: 'none',
-                        borderRadius: 8, padding: '8px 20px', fontSize: 13, fontWeight: 700,
-                        fontFamily: 'var(--bf)', cursor: 'pointer', transition: 'background 0.2s',
-                      }}
-                    >
-                      {saved ? '✅ 保存済み' : '保存する'}
-                    </button>
+                    <div style={{
+                      fontSize: 12, fontWeight: 700,
+                      color: status === 'saving' ? 'var(--acc)' : status === 'saved' ? 'var(--acc2)' : 'var(--t4)',
+                      transition: 'all 0.3s',
+                    }}>
+                      {status === 'saving' ? '● 保存中...' : status === 'saved' ? '✓ 保存済み' : '自動保存'}
+                    </div>
                   </div>
                 </div>
                 <RichEditor
                   value={draft[s.key] || ''}
                   onChange={html => {
                     setDraft(prev => ({ ...prev, [s.key]: html }))
-                    setSaved(false)
                   }}
                   placeholder={s.placeholder}
                   minHeight={400}
