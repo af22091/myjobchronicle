@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import type { TabProps } from '@/components/AppShell'
 import type { Analysis } from '@/types'
+import RichEditor from '@/components/RichEditor'
 
 const SWOT_FIELDS: { key: keyof Analysis; label: string; desc: string; color: string }[] = [
   { key: 'strength',    label: 'Strength（強み）',    desc: '自分の強みや会社の強み', color: '#1A5C3A' },
@@ -124,12 +125,11 @@ export default function AnalysisTab({ companies, onUpdateAnalysis }: TabProps) {
                   }}>
                     {f.label}
                   </p>
-                  <textarea
-                    id={`analysis-${f.key}`}
-                    style={{ ...ta, minHeight: 100 }}
-                    value={draft[f.key]}
-                    onChange={e => setField(f.key, e.target.value)}
+                  <RichEditor
+                    value={draft[f.key] || ''}
+                    onChange={html => setField(f.key, html)}
                     placeholder={f.desc}
+                    minHeight={100}
                   />
                 </div>
               ))}
@@ -148,12 +148,11 @@ export default function AnalysisTab({ companies, onUpdateAnalysis }: TabProps) {
                 }}>
                   {f.label}
                 </p>
-                <textarea
-                  id={`analysis-${f.key}`}
-                  style={ta}
-                  value={draft[f.key]}
-                  onChange={e => setField(f.key, e.target.value)}
+                <RichEditor
+                  value={draft[f.key] || ''}
+                  onChange={html => setField(f.key, html)}
                   placeholder={f.placeholder}
+                  minHeight={120}
                 />
               </div>
             ))}

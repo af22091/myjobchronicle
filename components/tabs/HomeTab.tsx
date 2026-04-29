@@ -56,7 +56,7 @@ export default function HomeTab({ companies, events }: TabProps) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="home-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         {/* 直近のイベント */}
         <div style={card}>
           <h2 style={{ fontFamily: 'var(--df)', fontSize: 16, fontWeight: 700, marginBottom: 16 }}>

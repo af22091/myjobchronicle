@@ -64,7 +64,7 @@ export default function AppShell({
           My Job Chronicle
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 11, color: 'var(--t3)', fontFamily: 'var(--sf)' }}>
+          <span className="header-email" style={{ fontSize: 11, color: 'var(--t3)', fontFamily: 'var(--sf)' }}>
             {user.email}
           </span>
           <button
@@ -89,6 +89,7 @@ export default function AppShell({
         {TABS.map(tab => (
           <button
             key={tab.id}
+            className="tab-btn"
             onClick={() => setActiveTab(tab.id)}
             style={{
               background: 'none', border: 'none', padding: '12px 14px',
@@ -100,13 +101,13 @@ export default function AppShell({
             }}
           >
             <span style={{ fontSize: 14 }}>{tab.icon}</span>
-            <span>{tab.label}</span>
+            <span className="tab-label">{tab.label}</span>
           </button>
         ))}
       </nav>
 
       {/* CONTENT */}
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px' }}>
+      <main className="main-content" style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px' }}>
         {activeTab === 'home'      && <HomeTab {...tabProps} />}
         {activeTab === 'companies' && <CompaniesTab {...tabProps} />}
         {activeTab === 'calendar'  && <CalendarTab {...tabProps} />}

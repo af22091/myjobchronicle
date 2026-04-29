@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { TabProps } from '@/components/AppShell'
+import RichEditor from '@/components/RichEditor'
 
 const ES_SECTIONS = [
   { key: 'whyUs',    label: '志望動機', placeholder: 'なぜこの企業を志望するのか、下書きを書いておこう' },
@@ -36,7 +37,10 @@ export default function EsTab({ companies, onSaveCompany, onUpdateAnalysis }: Ta
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const wordCount = (text: string) => text.trim() ? text.trim().length : 0
+  const wordCount = (html: string) => {
+    const text = html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+    return text.length
+  }
 
   return (
     <div>
@@ -127,20 +131,14 @@ export default function EsTab({ companies, onSaveCompany, onUpdateAnalysis }: Ta
                     </button>
                   </div>
                 </div>
-                <textarea
-                  id={`es-textarea-${s.key}`}
+                <RichEditor
                   value={draft[s.key] || ''}
-                  onChange={e => {
-                    setDraft(prev => ({ ...prev, [s.key]: e.target.value }))
+                  onChange={html => {
+                    setDraft(prev => ({ ...prev, [s.key]: html }))
                     setSaved(false)
                   }}
                   placeholder={s.placeholder}
-                  style={{
-                    width: '100%', minHeight: 400, background: 'var(--bg)',
-                    border: '1.5px solid var(--bor)', borderRadius: 10,
-                    padding: '14px 16px', fontSize: 14, color: 'var(--t1)',
-                    fontFamily: 'var(--bf)', outline: 'none', resize: 'vertical', lineHeight: 1.9,
-                  }}
+                  minHeight={400}
                 />
               </div>
             ))}

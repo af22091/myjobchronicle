@@ -67,7 +67,7 @@ export default function CalendarTab({ companies, events, onSaveEvent, onDeleteEv
         }}>›</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedDate ? '1fr 300px' : '1fr', gap: 20 }}>
+      <div className="calendar-layout" style={{ display: 'grid', gridTemplateColumns: selectedDate ? '1fr 300px' : '1fr', gap: 20 }}>
         {/* カレンダーグリッド */}
         <div style={{
           background: 'var(--card)', border: '1px solid var(--bor)',

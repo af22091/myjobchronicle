@@ -56,6 +56,7 @@ export default function EventModal({ data, companies, onSave, onClose }: Props) 
 
   return (
     <div
+      className="modal-overlay"
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
@@ -65,7 +66,7 @@ export default function EventModal({ data, companies, onSave, onClose }: Props) 
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="scale-in"
+        className="modal-card scale-in"
         style={{
           background: 'var(--card)', border: '1px solid var(--bor)',
           borderRadius: 20, padding: 28, width: '100%', maxWidth: 500,
@@ -85,7 +86,7 @@ export default function EventModal({ data, companies, onSave, onClose }: Props) 
           </div>
 
           {/* 種別・企業 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div className="form-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
               <label style={label}>種別</label>
               <select id="event-type" style={inp} value={form.type}
@@ -129,7 +130,7 @@ export default function EventModal({ data, companies, onSave, onClose }: Props) 
           )}
 
           {/* 時刻・場所 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div className="form-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
               <label style={label}>時刻</label>
               <input id="event-time" style={inp} value={form.time}

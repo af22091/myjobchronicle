@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { Company } from '@/types'
 import type { Status, Priority } from '@/types'
+import RichEditor from '@/components/RichEditor'
 
 const STATUSES: Status[] = ['気になる', 'ES作成中', 'ES提出済', '選考中', '最終面接', '内定', '辞退', '不合格']
 const PRIORITIES: Priority[] = ['S', 'A', 'B', 'C']
@@ -49,6 +50,7 @@ export default function CompanyModal({ data, onSave, onClose }: Props) {
 
   return (
     <div
+      className="modal-overlay"
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
@@ -57,8 +59,8 @@ export default function CompanyModal({ data, onSave, onClose }: Props) {
       }}
     >
       <div
+        className="modal-card scale-in"
         onClick={e => e.stopPropagation()}
-        className="scale-in"
         style={{
           background: 'var(--card)', border: '1px solid var(--bor)',
           borderRadius: 20, padding: 28, width: '100%', maxWidth: 520,
@@ -94,7 +96,7 @@ export default function CompanyModal({ data, onSave, onClose }: Props) {
           </div>
 
           {/* ステータス・優先度 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div className="form-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
               <label style={label}>ステータス</label>
               <select id="company-status" style={inp} value={form.status}
@@ -121,9 +123,12 @@ export default function CompanyModal({ data, onSave, onClose }: Props) {
           {/* メモ */}
           <div style={row}>
             <label style={label}>メモ</label>
-            <textarea id="company-note" style={{ ...inp, minHeight: 80, resize: 'vertical' }}
-              value={form.note} onChange={e => set('note', e.target.value)}
-              placeholder="自由にメモを書いてください" />
+            <RichEditor
+              value={form.note}
+              onChange={html => set('note', html)}
+              placeholder="自由にメモを書いてください"
+              minHeight={100}
+            />
           </div>
 
           {/* ボタン */}

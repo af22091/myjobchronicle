@@ -144,3 +144,39 @@ button {
 .status-内定        { color: #1A5C3A; }
 .status-辞退        { color: #7A7268; }
 .status-不合格      { color: #B81C1C; }
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 640px) {
+  /* ヘッダー */
+  .header-email { display: none !important; }
+
+  /* タブナビ：アイコンのみ表示 */
+  .tab-label { display: none; }
+  .tab-btn   { padding: 10px 12px !important; }
+
+  /* コンテンツ余白を縮小 */
+  .main-content { padding: 16px 12px !important; }
+
+  /* ホーム：カード2列→1列 */
+  .home-two-col { grid-template-columns: 1fr !important; }
+
+  /* カレンダー：サイドパネルを縦積み */
+  .calendar-layout { grid-template-columns: 1fr !important; }
+
+  /* モーダル：画面下からシート表示 */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .modal-card {
+    border-radius: 20px 20px 0 0 !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+  }
+
+  /* 各タブのテーブル・フィルター行 */
+  .filter-bar { gap: 6px !important; }
+
+  /* フォームの2カラムグリッド→1カラム */
+  .form-two-col { grid-template-columns: 1fr !important; }
+}
